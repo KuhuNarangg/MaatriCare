@@ -1,0 +1,17 @@
+@model Newborn
+<h2>@Model.Name</h2>
+<p class="muted">Mother: <a asp-controller="Mothers" asp-action="Details" asp-route-id="@Model.MotherId">@Model.Mother.Name</a> &bull; Born @Model.Dob.ToString("dd MMM yyyy") &bull; @Model.Gender &bull; @Model.BirthWeight kg</p>
+<div class="card">
+  <h3>Vaccination schedule</h3>
+  <table>
+    <tr><th>Vaccine</th><th>Due</th><th>Status</th><th></th></tr>
+    @foreach (var v in Model.Vaccines.OrderBy(v => v.DueDate))
+    {
+      <tr>
+        <td>@v.Name</td><td>@v.DueDate.ToString("dd MMM yyyy")</td>
+        <td><span class="pill @(v.Status == "Given" ? "low" : v.Status == "Overdue" ? "high" : "medium")">@v.Status</span></td>
+        <td>@if (v.Status != "Given") { <form asp-action="Give" asp-route-id="@v.Id" method="post"><button class="btn small">Mark given</button></form> }</td>
+      </tr>
+    }
+  </table>
+</div>

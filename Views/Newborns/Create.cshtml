@@ -1,0 +1,10 @@
+@model Newborn
+<h2>Register newborn</h2>
+<form method="post" class="card form">
+  <input type="hidden" asp-for="MotherId" />
+  <label>Baby name</label><input asp-for="Name" />
+  <label>Date of birth</label><input asp-for="Dob" type="date" />
+  <label>Gender</label><select asp-for="Gender"><option>Female</option><option>Male</option></select>
+  <label>Birth weight (kg)</label><input asp-for="BirthWeight" type="number" step="0.1" />
+  <button class="btn">Save &amp; create vaccine schedule</button>
+</form>

@@ -1,0 +1,31 @@
+/* site.css - mobile-friendly styles and theme for MaatriCare. */
+:root{--bg:#FBF6F0;--teal:#1F5F5B;--coral:#F2785C;--sage:#CFE3D4;--butter:#FBE8A6;--rose:#F9D0C6;--ink:#2B3A39;--card:#fff}
+*{box-sizing:border-box}
+body{margin:0;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink)}
+h1,h2,h3{font-family:'Fraunces',serif;color:var(--teal);margin:.2em 0 .5em}
+a{color:var(--teal)}
+.side{position:fixed;inset:0 auto 0 0;width:210px;background:var(--teal);padding:20px;display:flex;flex-direction:column;gap:6px}
+.side h1{color:#fff;font-size:1.6rem}.side h1 span{color:var(--coral)}
+.side a{color:#fff;text-decoration:none;padding:10px 12px;border-radius:12px}
+.side a:hover{background:rgba(255,255,255,.15)}
+.who{margin-top:auto;color:#cfe;font-size:.9rem}
+main{padding:28px;max-width:1000px}main.with-side{margin-left:210px}
+.card{background:var(--card);border-radius:18px;padding:20px;margin:0 0 16px;box-shadow:0 6px 18px rgba(31,95,91,.08)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:16px}
+.stat{margin:0;color:#667}.stat b{display:block;font-family:'Fraunces',serif;font-size:2.2rem;color:var(--coral)}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px;border-bottom:1px solid #f0e8de}
+.pill{padding:3px 12px;border-radius:99px;font-size:.8rem;font-weight:500}
+.low{background:var(--sage)}.medium{background:var(--butter)}.high{background:var(--rose);animation:pulse 2s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(242,120,92,.25)}}
+.btn{background:var(--coral);color:#fff;border:0;padding:10px 18px;border-radius:12px;cursor:pointer;text-decoration:none;font:inherit}
+.btn.small{padding:5px 12px;font-size:.8rem;margin-left:8px}
+.form{max-width:480px}.form label{display:block;margin:12px 0 4px;font-size:.9rem}
+input,select{width:100%;padding:10px;border:1px solid #e3d8cb;border-radius:10px;font:inherit}
+.check input{width:auto}
+.search{display:flex;gap:8px;margin-bottom:14px}.search input{max-width:300px}
+.bar{background:#f3ece3;border-radius:10px;margin:8px 0;overflow:hidden}.bar span{display:block;padding:6px 10px;min-width:70px;border-radius:10px}
+.bar .low{background:var(--sage)}.bar .med{background:var(--butter)}.bar .high{background:var(--rose);animation:none}
+.journey{background:#f3ece3;height:14px;border-radius:99px;overflow:hidden}.journey div{height:100%;background:linear-gradient(90deg,var(--teal),var(--coral))}
+.login{max-width:380px;margin:12vh auto;text-align:center}.login h1 span{color:var(--coral)}.login form{text-align:left}
+.muted{color:#778}.small{font-size:.8rem}.err{color:#c0392b}
+@media(max-width:700px){.side{position:static;width:auto;flex-direction:row;flex-wrap:wrap;align-items:center}.side h1{width:100%;margin:0 0 6px}.who{margin-left:auto;margin-top:0}main{padding:16px}main.with-side{margin-left:0}.card{overflow-x:auto}.search input{flex:1;max-width:none}}

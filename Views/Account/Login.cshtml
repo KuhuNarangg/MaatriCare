@@ -1,0 +1,11 @@
+<div class="login card">
+  <h1>Maatri<span>Care</span></h1>
+  <p class="muted">Maternal &amp; Newborn Follow-Up Platform</p>
+  @if (ViewBag.Error != null) { <p class="err">@ViewBag.Error</p> }
+  <form method="post">
+    <label>Username</label><input name="username" />
+    <label>Password</label><input name="password" type="password" />
+    <button class="btn">Sign in</button>
+  </form>
+  <p class="muted small">Demo: admin / doctor / worker &mdash; Pass@123</p>
+</div>

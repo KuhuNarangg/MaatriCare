@@ -1,0 +1,30 @@
+@model Mother
+@{ var r = RiskService.Evaluate(Model); }
+<h2>@Model.Name <span class="pill @r.Level.ToLower()">@r.Level risk</span></h2>
+<p class="muted">@Model.Village &bull; @Model.Phone &bull; Age @Model.Age &bull; @Model.BloodGroup</p>
+
+<div class="card">
+  <h3>Pregnancy journey &mdash; week @Model.Week of 40</h3>
+  <div class="journey"><div style="width:@(Model.Week * 100 / 40)%"></div></div>
+  <p>Expected delivery: <b>@Model.Edd.ToString("dd MMM yyyy")</b></p>
+</div>
+
+<div class="card">
+  <h3>Why @r.Level risk?</h3>
+  @if (r.Reasons.Count == 0) { <p class="muted">No risk factors found.</p> }
+  <ul>@foreach (var x in r.Reasons) { <li>@x</li> }</ul>
+</div>
+
+<div class="card">
+  <h3>ANC visits <a class="btn small" asp-action="AddVisit" asp-route-id="@Model.Id">+ Add visit</a></h3>
+  <table>
+    <tr><th>Date</th><th>BP</th><th>Hb</th><th>Sugar</th><th>Notes</th></tr>
+    @foreach (var v in Model.Visits.OrderByDescending(v => v.VisitDate))
+    { <tr><td>@v.VisitDate.ToString("dd MMM yyyy")</td><td>@v.Systolic/@v.Diastolic</td><td>@v.Hb</td><td>@v.BloodSugar</td><td>@v.Notes</td></tr> }
+  </table>
+</div>
+
+<div class="card">
+  <h3>Newborns <a class="btn small" asp-controller="Newborns" asp-action="Create" asp-route-motherId="@Model.Id">+ Register baby</a></h3>
+  @foreach (var n in Model.Newborns) { <p><a asp-controller="Newborns" asp-action="Details" asp-route-id="@n.Id">@n.Name</a> &mdash; born @n.Dob.ToString("dd MMM yyyy")</p> }
+</div>

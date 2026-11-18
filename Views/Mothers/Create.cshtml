@@ -1,0 +1,13 @@
+@model Mother
+<h2>Register mother</h2>
+<form method="post" class="card form">
+  <div asp-validation-summary="All" class="err"></div>
+  <label>Name</label><input asp-for="Name" />
+  <label>Age</label><input asp-for="Age" type="number" />
+  <label>Village</label><input asp-for="Village" />
+  <label>Phone</label><input asp-for="Phone" />
+  <label>Blood group</label><input asp-for="BloodGroup" />
+  <label>Last menstrual period (LMP)</label><input asp-for="Lmp" type="date" />
+  <label class="check"><input asp-for="PreviousCSection" /> Previous C-section</label>
+  <button class="btn">Save</button>
+</form>

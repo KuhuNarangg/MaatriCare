@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MaatriCare</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+@if (User.Identity.IsAuthenticated)
+{
+  <aside class="side">
+    <h1>Maatri<span>Care</span></h1>
+    <a asp-controller="Home" asp-action="Index">Dashboard</a>
+    <a asp-controller="Mothers" asp-action="Index">Mothers</a>
+    <a asp-controller="Mothers" asp-action="Create">+ Register mother</a>
+    <div class="who">@User.Identity.Name<br /><a asp-controller="Account" asp-action="Logout">Log out</a></div>
+  </aside>
+}
+<main class="@(User.Identity.IsAuthenticated ? "with-side" : "")">@RenderBody()</main>
+</body>
+</html>

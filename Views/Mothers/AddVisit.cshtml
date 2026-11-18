@@ -1,0 +1,12 @@
+@model AncVisit
+<h2>Add ANC visit</h2>
+<form method="post" class="card form">
+  <input type="hidden" asp-for="MotherId" />
+  <label>Date</label><input asp-for="VisitDate" type="date" />
+  <label>Systolic BP</label><input asp-for="Systolic" type="number" />
+  <label>Diastolic BP</label><input asp-for="Diastolic" type="number" />
+  <label>Hemoglobin (Hb)</label><input asp-for="Hb" type="number" step="0.1" />
+  <label>Blood sugar</label><input asp-for="BloodSugar" type="number" />
+  <label>Notes</label><input asp-for="Notes" />
+  <button class="btn">Save visit</button>
+</form>

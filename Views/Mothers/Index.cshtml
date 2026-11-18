@@ -1,0 +1,18 @@
+@model List<Mother>
+<h2>Mothers</h2>
+<form method="get" class="search"><input name="q" value="@ViewBag.Q" placeholder="Search name or village" /><button class="btn">Search</button></form>
+<div class="card">
+<table>
+  <tr><th>Name</th><th>Village</th><th>Week</th><th>EDD</th><th>Risk</th></tr>
+  @foreach (var m in Model)
+  {
+    var r = RiskService.Evaluate(m);
+    <tr>
+      <td><a asp-action="Details" asp-route-id="@m.Id">@m.Name</a></td>
+      <td>@m.Village</td><td>@m.Week</td><td>@m.Edd.ToString("dd MMM yyyy")</td>
+      <td><span class="pill @r.Level.ToLower()">@r.Level</span></td>
+    </tr>
+  }
+</table>
+@if (!Model.Any()) { <p class="muted">No mothers found.</p> }
+</div>
