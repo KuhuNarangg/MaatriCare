@@ -1,0 +1,7 @@
+# render.yaml - Render blueprint for one-click Docker deployment.
+services:
+  - type: web
+    name: maatricare
+    runtime: docker
+    plan: free
+    autoDeploy: true
