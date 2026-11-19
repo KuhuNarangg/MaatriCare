@@ -79,6 +79,23 @@
         }
       </div>
     </div>
+
+    @if (Model.MotherTips.Any())
+    {
+      <div class="card">
+        <h3>Health Tips for Trimester @m.Trimester</h3>
+        <div class="grid-2" style="margin-top:10px;">
+          @foreach (var tip in Model.MotherTips)
+          {
+            <div class="list-row" style="flex-direction:column;gap:6px;">
+              <span class="pill low">@tip.Category</span>
+              <strong>@tip.Title</strong>
+              <small>@tip.Content</small>
+            </div>
+          }
+        </div>
+      </div>
+    }
   }
 }
 else if (Model.Role == "HealthWorker")

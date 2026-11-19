@@ -16,6 +16,7 @@
   {
     <div class="quick-actions">
       <a class="btn teal" asp-action="AddVisit" asp-route-id="@m.Id">+ Add ANC Visit</a>
+      <a class="btn ghost" asp-controller="Referrals" asp-action="Create" asp-route-motherId="@m.Id" asp-route-reason="@string.Join("; ", Model.RiskReasons)">+ Refer to Hospital</a>
       <a class="btn ghost" asp-action="Edit" asp-route-id="@m.Id">Edit Mother</a>
       <form asp-action="Delete" asp-route-id="@m.Id" method="post" style="display:inline;" onsubmit="return confirm('Delete @m.Name and all her clinical records?');">
         @Html.AntiForgeryToken()
