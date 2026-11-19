@@ -15,4 +15,7 @@ public class AppDbContext : DbContext
     public DbSet<Vaccination> Vaccinations { get; set; }
     public DbSet<GrowthRecord> GrowthRecords { get; set; }
     public DbSet<ContactMessage> ContactMessages { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
+    public DbSet<Referral> Referrals { get; set; }
+    public DbSet<HealthTip> HealthTips { get; set; }
 }

@@ -1,0 +1,56 @@
+@* Index.cshtml - Admin health education tips management table. *@
+@model List<HealthTip>
+@{
+    ViewData["Title"] = "Health Education Tips";
+    string TrimesterLabel(int t) => t == 0 ? "General / Newborn" : $"Trimester {t}";
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Health Education Tips</h2>
+    <p>Published tips automatically appear on Mothers' dashboards based on their current trimester.</p>
+  </div>
+  <a class="btn" asp-action="Create">+ Add Health Tip</a>
+</div>
+
+@if (TempData["Success"] != null)
+{
+  <div class="card" style="background:var(--sage);color:var(--sage-ink);border-color:transparent;padding:12px 18px;">
+    @TempData["Success"]
+  </div>
+}
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Category</th>
+        <th>Target Stage</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach (var t in Model)
+      {
+        <tr>
+          <td>
+            <strong>@t.Title</strong><br />
+            <small class="muted">@t.Content</small>
+          </td>
+          <td><span class="pill medium">@t.Category</span></td>
+          <td>@TrimesterLabel(t.Trimester)</td>
+          <td><span class="pill @(t.IsPublished ? "low" : "high")" style="animation:none;">@(t.IsPublished ? "Published" : "Draft")</span></td>
+          <td style="white-space:nowrap;">
+            <a class="btn ghost small" style="margin-left:0;" asp-action="Edit" asp-route-id="@t.Id">Edit</a>
+            <form asp-action="Delete" asp-route-id="@t.Id" method="post" style="display:inline;" onsubmit="return confirm('Delete this health tip?');">
+              @Html.AntiForgeryToken()
+              <button type="submit" class="btn small">Delete</button>
+            </form>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

@@ -13,6 +13,9 @@ b.Services.AddScoped<UserService>();
 b.Services.AddScoped<MotherService>();
 b.Services.AddScoped<AppointmentService>();
 b.Services.AddScoped<NewbornService>();
+b.Services.AddScoped<ReminderService>();
+b.Services.AddScoped<ReferralService>();
+b.Services.AddScoped<HealthTipService>();
 b.Services.AddAuthentication("Cookies").AddCookie("Cookies", o =>
 {
     o.LoginPath = "/Account/Login";

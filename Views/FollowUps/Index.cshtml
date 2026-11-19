@@ -1,0 +1,91 @@
+@* Index.cshtml - Follow-ups queue with Today, Overdue, and Upcoming tabs plus Call and Mark Done actions. *@
+@model FollowUpPageViewModel
+@{
+    ViewData["Title"] = "Follow-Ups";
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Follow-Ups Queue</h2>
+    <p>Daily outreach list for health workers and doctors with direct call and completion actions.</p>
+  </div>
+  <a class="btn teal" asp-controller="Notifications" asp-action="Index">Open SMS Reminders</a>
+</div>
+
+@if (TempData["Success"] != null)
+{
+  <div class="card" style="background:var(--sage);color:var(--sage-ink);border-color:transparent;padding:12px 18px;">
+    @TempData["Success"]
+  </div>
+}
+
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+  <a class="page-btn @(Model.Tab == "today" ? "active" : "")" asp-action="Index" asp-route-tab="today">Today (@Model.TodayCount)</a>
+  <a class="page-btn @(Model.Tab == "overdue" ? "active" : "")" asp-action="Index" asp-route-tab="overdue">Overdue (@Model.OverdueCount)</a>
+  <a class="page-btn @(Model.Tab == "upcoming" ? "active" : "")" asp-action="Index" asp-route-tab="upcoming">Upcoming (@Model.UpcomingCount)</a>
+</div>
+
+<div class="card">
+  @if (!Model.Items.Any())
+  {
+    <div class="empty-state">
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="26" fill="#CFE3D4"/><path d="M18 28l7 7 13-13" stroke="#1F5F5B" stroke-width="3.5" stroke-linecap="round"/></svg>
+      <h3>No follow-ups in this tab</h3>
+      <p>Switch to Overdue or Upcoming to plan your next outreach calls.</p>
+    </div>
+  }
+  else
+  {
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Name &amp; Village</th>
+          <th>Action Needed</th>
+          <th>Due Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var item in Model.Items)
+        {
+          <tr>
+            <td><span class="pill @(item.Status == "Overdue" ? "high" : item.Status == "Today" ? "medium" : "low")" style="animation:none;">@item.Kind</span></td>
+            <td>
+              <a href="@item.DetailUrl"><strong>@item.PersonName</strong></a><br />
+              <small class="muted">@item.Village &bull; @item.Phone</small>
+            </td>
+            <td>@item.Description</td>
+            <td>@item.DueDate.ToString("dd MMM yyyy")</td>
+            <td style="white-space:nowrap;">
+              @if (!string.IsNullOrWhiteSpace(item.Phone))
+              {
+                <a class="btn ghost small" style="margin-left:0;" href="tel:@item.Phone">Call</a>
+              }
+              @if (item.AppointmentId.HasValue)
+              {
+                <form asp-action="CompleteAppointment" asp-route-id="@item.AppointmentId" method="post" style="display:inline;">
+                  @Html.AntiForgeryToken()
+                  <input type="hidden" name="tab" value="@Model.Tab" />
+                  <button type="submit" class="btn teal small">Mark Done</button>
+                </form>
+              }
+              else if (item.VaccineId.HasValue)
+              {
+                <form asp-action="CompleteVaccine" asp-route-id="@item.VaccineId" method="post" style="display:inline;">
+                  @Html.AntiForgeryToken()
+                  <input type="hidden" name="tab" value="@Model.Tab" />
+                  <button type="submit" class="btn teal small">Mark Given</button>
+                </form>
+              }
+              else
+              {
+                <a class="btn small" href="@item.DetailUrl">Log Visit</a>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

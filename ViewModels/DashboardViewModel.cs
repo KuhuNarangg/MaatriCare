@@ -39,6 +39,7 @@ public class DashboardViewModel
     public DateTime? NextRecommendedAncDate { get; set; }
     public Newborn LinkedBaby { get; set; }
     public Vaccination NextBabyVaccine { get; set; }
+    public List<HealthTip> MotherTips { get; set; } = new();
 }
 
 public class RiskAlertItem

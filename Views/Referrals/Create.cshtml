@@ -1,0 +1,55 @@
+@* Create.cshtml - create a hospital referral for a high-risk mother. *@
+@model ReferralFormViewModel
+@{
+    ViewData["Title"] = "New Hospital Referral";
+    var mothers = ViewBag.Mothers as List<Mother> ?? new();
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Refer Mother to Hospital</h2>
+    <p>Document the clinical reason and destination facility for specialist care.</p>
+  </div>
+  <a class="btn ghost" asp-action="Index">&larr; Back to Referrals</a>
+</div>
+
+<form method="post" class="card form" style="max-width:580px;" novalidate>
+  @Html.AntiForgeryToken()
+  <div asp-validation-summary="All" class="err"></div>
+
+  <label asp-for="MotherId">Mother</label>
+  <select asp-for="MotherId">
+    <option value="">-- Select a mother --</option>
+    @foreach (var m in mothers)
+    {
+      <option value="@m.Id">@m.Name (@m.Village — Week @m.Week)</option>
+    }
+  </select>
+
+  <label asp-for="HospitalName">Destination Hospital</label>
+  <input asp-for="HospitalName" placeholder="e.g. Civil Hospital Phagwara (OB-GYN)" />
+
+  <label asp-for="Reason">Clinical Reason for Referral</label>
+  <input asp-for="Reason" placeholder="e.g. High BP 150/95, Urine Protein +2, Severe Anaemia" />
+
+  <div class="grid-2">
+    <div>
+      <label asp-for="Priority">Priority</label>
+      <select asp-for="Priority">
+        <option value="Urgent">Urgent</option>
+        <option value="Routine">Routine</option>
+      </select>
+    </div>
+    <div>
+      <label asp-for="ReferredDate">Referral Date</label>
+      <input asp-for="ReferredDate" type="date" />
+    </div>
+  </div>
+
+  <label asp-for="Notes">Additional Notes (transport, specialist contact)</label>
+  <input asp-for="Notes" />
+
+  <div style="margin-top:20px;">
+    <button type="submit" class="btn">Create Referral</button>
+  </div>
+</form>

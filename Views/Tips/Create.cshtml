@@ -1,0 +1,48 @@
+@* Create.cshtml - Admin form to publish a new trimester-specific health tip. *@
+@model HealthTipFormViewModel
+@{
+    ViewData["Title"] = "Add Health Tip";
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Add Health Tip</h2>
+    <p>Create guidance shown to mothers on their personal dashboard by trimester.</p>
+  </div>
+  <a class="btn ghost" asp-action="Index">&larr; Back to Tips</a>
+</div>
+
+<form method="post" class="card form" style="max-width:580px;" novalidate>
+  @Html.AntiForgeryToken()
+  <div asp-validation-summary="All" class="err"></div>
+
+  <label asp-for="Title">Title</label>
+  <input asp-for="Title" placeholder="e.g. Staying hydrated in the second trimester" />
+
+  <div class="grid-2">
+    <div>
+      <label asp-for="Category">Category</label>
+      <input asp-for="Category" placeholder="Nutrition, Clinical Safety, Newborn Care" />
+    </div>
+    <div>
+      <label asp-for="Trimester">Target Stage</label>
+      <select asp-for="Trimester">
+        <option value="1">1st Trimester (Weeks 1–12)</option>
+        <option value="2">2nd Trimester (Weeks 13–26)</option>
+        <option value="3">3rd Trimester (Weeks 27–40)</option>
+        <option value="0">General / Newborn Care</option>
+      </select>
+    </div>
+  </div>
+
+  <label asp-for="Content">Guidance Content</label>
+  <textarea asp-for="Content" rows="4" style="width:100%;padding:10px;border:1px solid #e3d8cb;border-radius:10px;font:inherit;"></textarea>
+
+  <label class="check" style="margin-top:14px;display:inline-flex;align-items:center;gap:8px;">
+    <input asp-for="IsPublished" /> Publish immediately
+  </label>
+
+  <div style="margin-top:20px;">
+    <button type="submit" class="btn">Save Health Tip</button>
+  </div>
+</form>

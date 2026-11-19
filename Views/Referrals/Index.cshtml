@@ -1,0 +1,95 @@
+@* Index.cshtml - hospital referrals tracker for high-risk mothers with Pending/Accepted/Completed actions. *@
+@model List<Referral>
+@{
+    ViewData["Title"] = "Hospital Referrals";
+    string status = ViewBag.Status as string ?? "";
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Hospital Referrals</h2>
+    <p>Track high-risk obstetric referrals from village clinics to specialist hospitals.</p>
+  </div>
+  <a class="btn" asp-action="Create">+ New Referral</a>
+</div>
+
+@if (TempData["Success"] != null)
+{
+  <div class="card" style="background:var(--sage);color:var(--sage-ink);border-color:transparent;padding:12px 18px;">
+    @TempData["Success"]
+  </div>
+}
+
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+  <a class="page-btn @(status == "" ? "active" : "")" asp-action="Index">All</a>
+  <a class="page-btn @(status == "Pending" ? "active" : "")" asp-action="Index" asp-route-status="Pending">Pending</a>
+  <a class="page-btn @(status == "Accepted" ? "active" : "")" asp-action="Index" asp-route-status="Accepted">Accepted</a>
+  <a class="page-btn @(status == "Completed" ? "active" : "")" asp-action="Index" asp-route-status="Completed">Completed</a>
+</div>
+
+<div class="card">
+  @if (!Model.Any())
+  {
+    <div class="empty-state">
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="26" fill="#F3EAE0"/><path d="M28 18v20M18 28h20" stroke="#1F5F5B" stroke-width="3.5" stroke-linecap="round"/></svg>
+      <h3>No referrals found</h3>
+      <p>Use "+ New Referral" when a high-risk mother needs specialist hospital care.</p>
+    </div>
+  }
+  else
+  {
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Mother</th>
+          <th>Hospital</th>
+          <th>Reason &amp; Notes</th>
+          <th>Status</th>
+          <th>Update Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var r in Model)
+        {
+          <tr>
+            <td>@r.ReferredDate.ToString("dd MMM yyyy")</td>
+            <td>
+              <a asp-controller="Mothers" asp-action="Details" asp-route-id="@r.MotherId"><strong>@r.Mother?.Name</strong></a><br />
+              <small class="muted">@r.Mother?.Village &bull; @r.Priority</small>
+            </td>
+            <td><strong>@r.HospitalName</strong></td>
+            <td>
+              @r.Reason
+              @if (!string.IsNullOrWhiteSpace(r.Notes))
+              {
+                <br /><small class="muted">@r.Notes</small>
+              }
+            </td>
+            <td><span class="pill @(r.Status == "Completed" ? "low" : r.Status == "Accepted" ? "medium" : "high")" style="animation:none;">@r.Status</span></td>
+            <td style="white-space:nowrap;">
+              @if (r.Status == "Pending")
+              {
+                <form asp-action="UpdateStatus" method="post" style="display:inline;">
+                  @Html.AntiForgeryToken()
+                  <input type="hidden" name="id" value="@r.Id" />
+                  <input type="hidden" name="status" value="Accepted" />
+                  <button type="submit" class="btn teal small" style="margin-left:0;">Accept</button>
+                </form>
+              }
+              @if (r.Status != "Completed")
+              {
+                <form asp-action="UpdateStatus" method="post" style="display:inline;">
+                  @Html.AntiForgeryToken()
+                  <input type="hidden" name="id" value="@r.Id" />
+                  <input type="hidden" name="status" value="Completed" />
+                  <button type="submit" class="btn small">Complete</button>
+                </form>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

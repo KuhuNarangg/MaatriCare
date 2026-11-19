@@ -42,6 +42,10 @@ public class DashboardService
                     .Where(v => v.GivenDate == null)
                     .OrderBy(v => v.DueDate)
                     .FirstOrDefault();
+                vm.MotherTips = await db.HealthTips
+                    .Where(t => t.IsPublished && (t.Trimester == myMother.Trimester || t.Trimester == 0))
+                    .OrderByDescending(t => t.Trimester == myMother.Trimester)
+                    .ToListAsync();
             }
             return vm;
         }

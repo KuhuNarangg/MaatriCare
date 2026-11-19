@@ -142,6 +142,29 @@ public static class DbSeeder
             new AppUser { Username = "mother", FullName = "Anita Rani", Phone = "9876500004", PasswordHash = Hash("Pass@123"), Role = "Mother", IsActive = true, MotherId = mothers[1].Id }
         );
 
+        // Seeded hospital referrals for high-risk mothers
+        db.Referrals.AddRange(
+            new Referral { MotherId = mothers[2].Id, HospitalName = "Civil Hospital Phagwara (OB-GYN)", Reason = "BP 146/92, Urine Protein +2, Previous C-section", Priority = "Urgent", Status = "Pending", ReferredDate = today.AddDays(-2), Notes = "Pre-eclampsia evaluation needed" },
+            new Referral { MotherId = mothers[4].Id, HospitalName = "District Hospital Kapurthala", Reason = "BP 150/95, Blood Sugar 150, Age 37", Priority = "Urgent", Status = "Accepted", ReferredDate = today.AddDays(-4), Notes = "Specialist bed confirmed" },
+            new Referral { MotherId = mothers[9].Id, HospitalName = "Civil Hospital Phagwara", Reason = "Severe Anaemia (Hb 6.6) & BP 142/90", Priority = "Urgent", Status = "Completed", ReferredDate = today.AddDays(-6), Notes = "IV iron sucrose started" }
+        );
+
+        // Seeded trimester-based health education tips
+        db.HealthTips.AddRange(
+            new HealthTip { Title = "Start Folic Acid & Early Registration", Category = "First Trimester", Trimester = 1, Content = "Take 400 mcg folic acid daily during the first 12 weeks to protect your baby's neural tube development and complete your baseline Hb and blood group check." },
+            new HealthTip { Title = "Iron-Rich Foods & IFA Tablets", Category = "Nutrition", Trimester = 2, Content = "Eat spinach, lentils, jaggery, and chana paired with lemon or amla for vitamin C. Take your prescribed IFA tablet after dinner to prevent anaemia." },
+            new HealthTip { Title = "Recognize Third-Trimester Danger Signs", Category = "Clinical Safety", Trimester = 3, Content = "Visit the clinic immediately if you experience severe headache, blurred vision, sudden swelling of hands/face, reduced baby movements, or any bleeding." },
+            new HealthTip { Title = "Birth Preparedness & Hospital Bag", Category = "Birth Prep", Trimester = 3, Content = "Keep your MaatriCare ANC card, clean clothes for mother and baby, emergency contact numbers, and transport plan ready by week 34." },
+            new HealthTip { Title = "Exclusive Breastfeeding & Birth Vaccines", Category = "Newborn Care", Trimester = 0, Content = "Begin breastfeeding within 1 hour of birth and ensure BCG, OPV 0, and Hepatitis B birth doses are recorded on your baby's UIP schedule." }
+        );
+
+        // Seeded simulated SMS notifications
+        db.Notifications.AddRange(
+            new Notification { RecipientName = mothers[2].Name, Phone = mothers[2].Phone, Category = "Upcoming Visit", Title = "SMS Reminder: High-Risk BP Check", Message = $"Namaste {mothers[2].Name}, please visit Phagwara PHC today for your scheduled BP & urine protein check-up.", LinkUrl = $"/Mothers/Details/{mothers[2].Id}", IsRead = false, CreatedAt = DateTime.Now.AddHours(-3) },
+            new Notification { RecipientName = mothers[5].Name, Phone = mothers[5].Phone, Category = "Overdue Visit", Title = "SMS Reminder: Overdue ANC Check-up", Message = $"Namaste {mothers[5].Name}, your antenatal visit is overdue. Please contact your ANM worker in Nangal.", LinkUrl = $"/Mothers/Details/{mothers[5].Id}", IsRead = false, CreatedAt = DateTime.Now.AddHours(-2) },
+            new Notification { RecipientName = mothers[10].Name, Phone = mothers[10].Phone, Category = "Due Vaccine", Title = "SMS Reminder: Pentavalent 1 Overdue", Message = $"Namaste {mothers[10].Name}, Baby of Balwinder is due for Pentavalent 1 + Rota 1 + IPV 1 at Hadiabad clinic.", LinkUrl = $"/Newborns/Details/{b4.Id}", IsRead = false, CreatedAt = DateTime.Now.AddHours(-1) }
+        );
+
         db.SaveChanges();
     }
 }
