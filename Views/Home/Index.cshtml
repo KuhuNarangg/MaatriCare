@@ -1,19 +1,37 @@
 @{ int total = ViewBag.Total == 0 ? 1 : ViewBag.Total; }
-<h2>Dashboard</h2>
-<div class="grid">
-  <div class="card stat"><b>@ViewBag.Total</b>Mothers registered</div>
-  <div class="card stat"><b>@ViewBag.High</b>High risk</div>
-  <div class="card stat"><b>@ViewBag.Newborns</b>Newborns</div>
-  <div class="card stat"><b>@ViewBag.OverdueVaccines</b>Overdue vaccines</div>
+<section class="dashboard-intro">
+  <div>
+    <p class="eyebrow">CARE OVERVIEW</p>
+    <h1>Good care, at a glance.</h1>
+    <p class="intro-copy">A clear picture of the mothers and newborns in your care, all in one place.</p>
+  </div>
+  <div class="intro-action"><a class="btn" asp-controller="Mothers" asp-action="Create">＋ &nbsp; Register a mother</a></div>
+</section>
+<div class="grid" aria-label="Care summary">
+  <div class="card stat">Mothers in care<b>@ViewBag.Total</b></div>
+  <div class="card stat">High-risk pregnancies<b>@ViewBag.High</b></div>
+  <div class="card stat">Newborns followed<b>@ViewBag.Newborns</b></div>
+  <div class="card stat">Vaccines overdue<b>@ViewBag.OverdueVaccines</b></div>
 </div>
-<div class="card">
-  <h3>Risk distribution</h3>
-  <div class="bar"><span class="low" style="width:@(ViewBag.Low * 100 / total)%">Low @ViewBag.Low</span></div>
-  <div class="bar"><span class="med" style="width:@(ViewBag.Medium * 100 / total)%">Medium @ViewBag.Medium</span></div>
-  <div class="bar"><span class="high" style="width:@(ViewBag.High * 100 / total)%">High @ViewBag.High</span></div>
-</div>
-<div class="card">
-  <h3>Deliveries expected in the next 30 days</h3>
-  @if (((List<Mother>)ViewBag.DueSoon).Count == 0) { <p class="muted">No deliveries due soon.</p> }
-  @foreach (var m in (List<Mother>)ViewBag.DueSoon) { <p><a asp-controller="Mothers" asp-action="Details" asp-route-id="@m.Id">@m.Name</a> &mdash; EDD @m.Edd.ToString("dd MMM yyyy")</p> }
+<div class="dashboard-grid">
+  <section class="card">
+    <div class="card-heading"><div><h3>Pregnancy risk overview</h3><p>Current distribution across your caseload</p></div></div>
+    <div class="risk-row"><span>Low risk</span><div class="bar" role="meter" aria-label="Low risk" aria-valuemin="0" aria-valuemax="@total" aria-valuenow="@ViewBag.Low"><span class="low" style="width:@(ViewBag.Low * 100 / total)%"></span></div><span class="risk-count">@ViewBag.Low</span></div>
+    <div class="risk-row"><span>Medium</span><div class="bar" role="meter" aria-label="Medium risk" aria-valuemin="0" aria-valuemax="@total" aria-valuenow="@ViewBag.Medium"><span class="med" style="width:@(ViewBag.Medium * 100 / total)%"></span></div><span class="risk-count">@ViewBag.Medium</span></div>
+    <div class="risk-row"><span>High risk</span><div class="bar" role="meter" aria-label="High risk" aria-valuemin="0" aria-valuemax="@total" aria-valuenow="@ViewBag.High"><span class="high" style="width:@(ViewBag.High * 100 / total)%"></span></div><span class="risk-count">@ViewBag.High</span></div>
+    <p class="muted small">Risk levels help you prioritize follow-up and support.</p>
+  </section>
+  <section class="card">
+    <div class="card-heading"><div><h3>Deliveries coming up</h3><p>Expected within the next 30 days</p></div><span class="pill low">@(((List<Mother>)ViewBag.DueSoon).Count) upcoming</span></div>
+    @if (((List<Mother>)ViewBag.DueSoon).Count == 0) { <p class="empty-note">No deliveries expected in the next 30 days.</p> }
+    else
+    {
+      <div class="due-list">
+      @foreach (var m in (List<Mother>)ViewBag.DueSoon)
+      {
+        <div class="due-item"><span class="due-date">@m.Edd.ToString("dd")<br />@m.Edd.ToString("MMM")</span><span class="due-person"><a asp-controller="Mothers" asp-action="Details" asp-route-id="@m.Id">@m.Name</a><span>@m.Village &middot; Expected delivery</span></span><span class="due-arrow" aria-hidden="true">→</span></div>
+      }
+      </div>
+    }
+  </section>
 </div>
