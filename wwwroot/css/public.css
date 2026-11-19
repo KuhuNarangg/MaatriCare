@@ -1,24 +1,24 @@
 /* public.css - design system, public website layout, components, animations and split-screen login. */
 :root {
-  --bg: #FBF6F0;
-  --bg-soft: #F3EAE0;
-  --teal: #1F5F5B;
-  --teal-dark: #164643;
-  --coral: #F2785C;
-  --coral-dark: #DC6245;
-  --sage: #CFE3D4;
-  --sage-ink: #1C4A33;
-  --butter: #FBE8A6;
-  --butter-ink: #6B4F08;
-  --rose: #F9D0C6;
-  --rose-ink: #8C2D19;
-  --ink: #233332;
-  --muted: #5C6E6D;
+  --bg: #F7F8F5;
+  --bg-soft: #EEF3EF;
+  --teal: #17473C;
+  --teal-dark: #10372F;
+  --coral: #B96E57;
+  --coral-dark: #9D5843;
+  --sage: #DCECE4;
+  --sage-ink: #285A43;
+  --butter: #E4EFBC;
+  --butter-ink: #41542B;
+  --rose: #F2DFDA;
+  --rose-ink: #893F36;
+  --ink: #1C3029;
+  --muted: #64766E;
   --card: #FFFFFF;
-  --border: #E7DDD0;
-  --shadow: 0 10px 30px rgba(31, 95, 91, 0.08);
-  --shadow-hover: 0 16px 40px rgba(31, 95, 91, 0.14);
-  --radius: 20px;
+  --border: #DEE7E1;
+  --shadow: 0 10px 30px rgba(23, 71, 60, 0.07);
+  --shadow-hover: 0 16px 40px rgba(23, 71, 60, 0.12);
+  --radius: 16px;
 }
 
 * { box-sizing: border-box; }
@@ -39,6 +39,7 @@ h1, h2, h3, h4 {
   margin-top: 0;
 }
 a { color: var(--teal); text-decoration: none; }
+:focus-visible { outline: 3px solid var(--coral); outline-offset: 3px; }
 img, svg { max-width: 100%; height: auto; display: block; }
 
 .container { width: 100%; max-width: 1140px; margin: 0 auto; padding: 0 24px; }
@@ -68,8 +69,8 @@ img, svg { max-width: 100%; height: auto; display: block; }
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px 24px;
-  border-radius: 999px;
+  padding: 12px 22px;
+  border-radius: 12px;
   font-family: 'Inter', sans-serif;
   font-weight: 600;
   font-size: 0.96rem;
@@ -78,8 +79,8 @@ img, svg { max-width: 100%; height: auto; display: block; }
   transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 .btn:hover { transform: translateY(-2px); }
-.btn-primary { background: var(--coral); color: #fff; box-shadow: 0 6px 18px rgba(242, 120, 92, 0.28); }
-.btn-primary:hover { background: var(--coral-dark); color: #fff; }
+.btn-primary { background: var(--teal); color: #fff; box-shadow: 0 6px 18px rgba(23, 71, 60, 0.2); }
+.btn-primary:hover { background: var(--teal-dark); color: #fff; }
 .btn-teal { background: var(--teal); color: #fff; }
 .btn-teal:hover { background: var(--teal-dark); color: #fff; }
 .btn-outline { background: transparent; border-color: var(--teal); color: var(--teal); }
@@ -147,12 +148,12 @@ img, svg { max-width: 100%; height: auto; display: block; }
 /* Cinematic Full-Bleed Hero Section */
 .hero-cinematic {
   position: relative;
-  min-height: 78vh;
+  min-height: 68vh;
   display: flex;
   align-items: center;
-  padding: 92px 0 84px;
+  padding: 82px 0 74px;
   background-image:
-    linear-gradient(105deg, rgba(16, 52, 50, 0.88) 0%, rgba(25, 76, 73, 0.66) 52%, rgba(22, 70, 67, 0.30) 100%),
+    linear-gradient(105deg, rgba(16, 47, 40, 0.9) 0%, rgba(23, 71, 60, 0.72) 52%, rgba(23, 71, 60, 0.34) 100%),
     url('/images/hero-care.jpg');
   background-size: cover;
   background-position: center 42%;

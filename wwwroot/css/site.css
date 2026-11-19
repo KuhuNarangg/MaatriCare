@@ -1,22 +1,22 @@
 /* site.css - app shell layout, collapsible sidebar, topbar, KPIs, charts, skeletons and responsive rules. */
 :root {
-  --bg: #FBF6F0;
-  --bg-soft: #F3EAE0;
-  --teal: #1F5F5B;
-  --teal-dark: #164643;
-  --coral: #F2785C;
-  --coral-dark: #DC6245;
-  --sage: #CFE3D4;
-  --sage-ink: #1C4A33;
-  --butter: #FBE8A6;
-  --butter-ink: #6B4F08;
-  --rose: #F9D0C6;
-  --rose-ink: #8C2D19;
-  --ink: #233332;
-  --muted: #617371;
+  --bg: #F7F8F5;
+  --bg-soft: #EEF3EF;
+  --teal: #17473C;
+  --teal-dark: #10372F;
+  --coral: #B96E57;
+  --coral-dark: #9D5843;
+  --sage: #DCECE4;
+  --sage-ink: #285A43;
+  --butter: #E4EFBC;
+  --butter-ink: #41542B;
+  --rose: #F2DFDA;
+  --rose-ink: #893F36;
+  --ink: #1C3029;
+  --muted: #64766E;
   --card: #FFFFFF;
-  --border: #E8DDD0;
-  --shadow: 0 8px 24px rgba(31, 95, 91, 0.07);
+  --border: #DEE7E1;
+  --shadow: 0 8px 24px rgba(23, 71, 60, 0.07);
   --side-w: 250px;
   --side-mini: 76px;
 }
