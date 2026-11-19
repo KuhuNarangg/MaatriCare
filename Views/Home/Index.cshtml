@@ -9,6 +9,7 @@
 {
   <div class="dash-header">
     <div>
+      <span class="dash-eyebrow">Your care overview</span>
       <h2>Welcome, @(Model.LinkedMother?.Name ?? Model.Username)</h2>
       <p>Your personal pregnancy journey and newborn vaccination tracker.</p>
     </div>
@@ -102,6 +103,7 @@ else if (Model.Role == "HealthWorker")
 {
   <div class="dash-header">
     <div>
+      <span class="dash-eyebrow">Field operations</span>
       <h2>Field Worker Dashboard</h2>
       <p>Assigned villages:
         @foreach (var v in Model.AssignedVillages)
@@ -197,6 +199,7 @@ else
 {
   <div class="dash-header">
     <div>
+      <span class="dash-eyebrow">Maternal health · Punjab</span>
       <h2>Clinic Dashboard</h2>
       <p>Live maternal, newborn, and immunisation overview across Punjab villages.</p>
     </div>
@@ -356,7 +359,7 @@ else
               labels: ['Low Risk', 'Medium Risk', 'High Risk'],
               datasets: [{
                 data: riskData,
-                backgroundColor: ['#CFE3D4', '#FBE8A6', '#F2785C'],
+                backgroundColor: ['#DCECE4', '#E4EFBC', '#B96E57'],
                 borderColor: '#FFFFFF',
                 borderWidth: 3
               }]
@@ -376,7 +379,7 @@ else
               datasets: [{
                 label: 'Mothers Registered',
                 data: monthCounts,
-                backgroundColor: '#1F5F5B',
+                backgroundColor: '#17473C',
                 borderRadius: 8
               }]
             },
@@ -395,7 +398,7 @@ else
               datasets: [{
                 label: 'Coverage %',
                 data: villageCoverage,
-                backgroundColor: '#F2785C',
+                backgroundColor: '#B96E57',
                 borderRadius: 8
               }]
             },
