@@ -1,0 +1,48 @@
+@* Edit.cshtml - edit an existing mother's clinical and contact details. *@
+@model MotherFormViewModel
+@{
+    ViewData["Title"] = "Edit Mother";
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Edit Mother: @Model.Name</h2>
+    <p>Update contact details, LMP, or obstetric history.</p>
+  </div>
+  <a class="btn ghost" asp-action="Details" asp-route-id="@Model.Id">&larr; Back to Profile</a>
+</div>
+
+<form method="post" class="card form" style="max-width:560px;" novalidate>
+  @Html.AntiForgeryToken()
+  <input type="hidden" asp-for="Id" />
+  <div asp-validation-summary="All" class="err"></div>
+
+  <label asp-for="Name">Full Name</label>
+  <input asp-for="Name" />
+
+  <label asp-for="Age">Age (years)</label>
+  <input asp-for="Age" type="number" />
+
+  <label asp-for="Village">Village</label>
+  <input asp-for="Village" />
+
+  <label asp-for="Phone">Phone Number</label>
+  <input asp-for="Phone" />
+
+  <label asp-for="BloodGroup">Blood Group</label>
+  <input asp-for="BloodGroup" />
+
+  <label asp-for="Lmp">Last Menstrual Period (LMP)</label>
+  <input asp-for="Lmp" type="date" />
+
+  <label asp-for="PreviousComplications">Previous Pregnancy Complications (count)</label>
+  <input asp-for="PreviousComplications" type="number" min="0" max="10" />
+
+  <label class="check" style="margin-top:14px;display:inline-flex;align-items:center;gap:8px;">
+    <input asp-for="PreviousCSection" /> Previous C-section delivery
+  </label>
+
+  <div style="margin-top:20px;">
+    <button type="submit" class="btn">Save Changes</button>
+  </div>
+</form>

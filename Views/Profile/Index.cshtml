@@ -1,0 +1,70 @@
+@* Index.cshtml - user profile page for editing name/phone and changing password. *@
+@model ProfileViewModel
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+<div class="dash-header">
+  <div>
+    <h2>My Profile</h2>
+    <p>Account: <strong>@Model.Username</strong> &bull; <span class="pill low">@Model.Role</span></p>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h3>Personal Details</h3>
+    @if (TempData["ProfileSuccess"] != null)
+    {
+      <div style="background:var(--sage);color:var(--sage-ink);padding:12px 14px;border-radius:12px;margin-bottom:14px;">
+        @TempData["ProfileSuccess"]
+      </div>
+    }
+    <form asp-action="Update" method="post" class="form" style="max-width:none;" novalidate>
+      @Html.AntiForgeryToken()
+      <div asp-validation-summary="All" class="err"></div>
+
+      <label asp-for="FullName">Full Name</label>
+      <input asp-for="FullName" placeholder="Your full name" />
+
+      <label asp-for="Phone">Phone Number</label>
+      <input asp-for="Phone" placeholder="Your phone number" />
+
+      <div style="margin-top:18px;">
+        <button type="submit" class="btn teal">Save Profile</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Change Password</h3>
+    @if (TempData["PasswordSuccess"] != null)
+    {
+      <div style="background:var(--sage);color:var(--sage-ink);padding:12px 14px;border-radius:12px;margin-bottom:14px;">
+        @TempData["PasswordSuccess"]
+      </div>
+    }
+    @if (TempData["PasswordError"] != null)
+    {
+      <div style="background:var(--rose);color:var(--rose-ink);padding:12px 14px;border-radius:12px;margin-bottom:14px;">
+        @TempData["PasswordError"]
+      </div>
+    }
+    <form asp-action="ChangePassword" method="post" class="form" style="max-width:none;" novalidate>
+      @Html.AntiForgeryToken()
+
+      <label for="CurrentPassword">Current Password</label>
+      <input id="CurrentPassword" name="CurrentPassword" type="password" required />
+
+      <label for="NewPassword">New Password</label>
+      <input id="NewPassword" name="NewPassword" type="password" required placeholder="At least 6 characters" />
+
+      <label for="ConfirmPassword">Confirm New Password</label>
+      <input id="ConfirmPassword" name="ConfirmPassword" type="password" required />
+
+      <div style="margin-top:18px;">
+        <button type="submit" class="btn">Update Password</button>
+      </div>
+    </form>
+  </div>
+</div>

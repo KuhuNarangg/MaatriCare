@@ -10,7 +10,7 @@
       <tr>
         <td>@v.Name</td><td>@v.DueDate.ToString("dd MMM yyyy")</td>
         <td><span class="pill @(v.Status == "Given" ? "low" : v.Status == "Overdue" ? "high" : "medium")">@v.Status</span></td>
-        <td>@if (v.Status != "Given") { <form asp-action="Give" asp-route-id="@v.Id" method="post"><button class="btn small">Mark given</button></form> }</td>
+        <td>@if (v.Status != "Given" && !User.IsInRole("Mother")) { <form asp-action="Give" asp-route-id="@v.Id" method="post"><button class="btn small">Mark given</button></form> }</td>
       </tr>
     }
   </table>

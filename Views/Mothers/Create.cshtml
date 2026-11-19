@@ -1,13 +1,47 @@
-@model Mother
-<h2>Register mother</h2>
-<form method="post" class="card form">
+@* Create.cshtml - register a new expectant mother using MotherFormViewModel. *@
+@model MotherFormViewModel
+@{
+    ViewData["Title"] = "Register Mother";
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Register Mother</h2>
+    <p>Pregnancy week, trimester, EDD, and ANC schedule will be generated automatically from LMP.</p>
+  </div>
+  <a class="btn ghost" asp-action="Index">&larr; Back to Directory</a>
+</div>
+
+<form method="post" class="card form" style="max-width:560px;" novalidate>
+  @Html.AntiForgeryToken()
   <div asp-validation-summary="All" class="err"></div>
-  <label>Name</label><input asp-for="Name" />
-  <label>Age</label><input asp-for="Age" type="number" />
-  <label>Village</label><input asp-for="Village" />
-  <label>Phone</label><input asp-for="Phone" />
-  <label>Blood group</label><input asp-for="BloodGroup" />
-  <label>Last menstrual period (LMP)</label><input asp-for="Lmp" type="date" />
-  <label class="check"><input asp-for="PreviousCSection" /> Previous C-section</label>
-  <button class="btn">Save</button>
+
+  <label asp-for="Name">Full Name</label>
+  <input asp-for="Name" placeholder="e.g. Jaswinder Kaur" />
+
+  <label asp-for="Age">Age (years)</label>
+  <input asp-for="Age" type="number" />
+
+  <label asp-for="Village">Village</label>
+  <input asp-for="Village" placeholder="e.g. Phagwara, Nangal, Hadiabad, Goraya" />
+
+  <label asp-for="Phone">Phone Number</label>
+  <input asp-for="Phone" placeholder="e.g. 9876500020" />
+
+  <label asp-for="BloodGroup">Blood Group</label>
+  <input asp-for="BloodGroup" placeholder="e.g. B+, O+, A+" />
+
+  <label asp-for="Lmp">Last Menstrual Period (LMP)</label>
+  <input asp-for="Lmp" type="date" />
+
+  <label asp-for="PreviousComplications">Previous Pregnancy Complications (count)</label>
+  <input asp-for="PreviousComplications" type="number" min="0" max="10" />
+
+  <label class="check" style="margin-top:14px;display:inline-flex;align-items:center;gap:8px;">
+    <input asp-for="PreviousCSection" /> Previous C-section delivery
+  </label>
+
+  <div style="margin-top:20px;">
+    <button type="submit" class="btn">Save &amp; Open Profile</button>
+  </div>
 </form>

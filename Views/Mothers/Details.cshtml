@@ -1,30 +1,253 @@
-@model Mother
-@{ var r = RiskService.Evaluate(Model); }
-<h2>@Model.Name <span class="pill @r.Level.ToLower()">@r.Level risk</span></h2>
-<p class="muted">@Model.Village &bull; @Model.Phone &bull; Age @Model.Age &bull; @Model.BloodGroup</p>
+@* Details.cshtml - Mother profile with Pregnancy Journey timeline, auto ANC schedule, risk panel, visits, and appointments. *@
+@model MotherDetailsViewModel
+@{
+    var m = Model.Mother;
+    var isStaff = !User.IsInRole("Mother");
+    ViewData["Title"] = m.Name;
+    string countdown = m.DaysToEdd > 0 ? $"{m.DaysToEdd} days left" : m.DaysToEdd == 0 ? "Due today" : $"{Math.Abs(m.DaysToEdd)} days past EDD";
+}
+
+<div class="dash-header">
+  <div>
+    <h2>@m.Name <span class="pill @Model.RiskLevel.ToLower()">@Model.RiskLevel risk (Score @Model.RiskScore)</span></h2>
+    <p>@m.Village &bull; @m.Phone &bull; Age @m.Age &bull; Blood Group @(string.IsNullOrWhiteSpace(m.BloodGroup) ? "—" : m.BloodGroup) @(m.PreviousCSection ? "• Previous C-section" : "") @(m.PreviousComplications > 0 ? $"• {m.PreviousComplications} prev. complication(s)" : "")</p>
+  </div>
+  @if (isStaff)
+  {
+    <div class="quick-actions">
+      <a class="btn teal" asp-action="AddVisit" asp-route-id="@m.Id">+ Add ANC Visit</a>
+      <a class="btn ghost" asp-action="Edit" asp-route-id="@m.Id">Edit Mother</a>
+      <form asp-action="Delete" asp-route-id="@m.Id" method="post" style="display:inline;" onsubmit="return confirm('Delete @m.Name and all her clinical records?');">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn">Delete</button>
+      </form>
+    </div>
+  }
+</div>
+
+@if (TempData["Success"] != null)
+{
+  <div class="card" style="background:var(--sage);color:var(--sage-ink);border-color:transparent;padding:12px 18px;">
+    @TempData["Success"]
+  </div>
+}
 
 <div class="card">
-  <h3>Pregnancy journey &mdash; week @Model.Week of 40</h3>
-  <div class="journey"><div style="width:@(Model.Week * 100 / 40)%"></div></div>
-  <p>Expected delivery: <b>@Model.Edd.ToString("dd MMM yyyy")</b></p>
+  <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;">
+    <h3 style="margin:0;">Pregnancy Journey &mdash; Week @m.Week of 40</h3>
+    <div>
+      <span class="pill low">Trimester @m.Trimester</span>
+      <span class="pill medium">EDD: @m.Edd.ToString("dd MMM yyyy") (@countdown)</span>
+    </div>
+  </div>
+
+  <div class="timeline-box">
+    <div class="timeline-track">
+      <div class="timeline-fill" style="width:@(Math.Clamp(m.Week * 100 / 40, 2, 100))%"></div>
+      @foreach (var ms in Model.VisitMilestones)
+      {
+        int leftPct = Math.Clamp(ms.Week * 100 / 40, 2, 98);
+        <span class="timeline-marker" style="left:@(leftPct)%" title="Week @ms.Week (@ms.VisitDate.ToString("dd MMM yyyy")): @ms.Summary"></span>
+      }
+      <span class="timeline-now" style="left:@(Math.Clamp(m.Week * 100 / 40, 2, 98))%" title="Current: Week @m.Week"></span>
+    </div>
+    <div class="timeline-ticks">
+      <span>Wk 1 (LMP @m.Lmp.ToString("dd MMM"))</span>
+      <span>Wk 12 (T1 End)</span>
+      <span>Wk 26 (T2 End)</span>
+      <span>Wk 40 (EDD @m.Edd.ToString("dd MMM"))</span>
+    </div>
+  </div>
+  <p class="small muted" style="margin:0;">Teal dots mark recorded ANC visits (hover for vitals); coral dot marks current gestational week.</p>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h3>Why @Model.RiskLevel risk?</h3>
+    @if (Model.RiskReasons.Count == 0)
+    {
+      <p class="muted">No elevated risk factors detected so far.</p>
+    }
+    else
+    {
+      <ul style="margin:6px 0 10px;padding-left:20px;">
+        @foreach (var x in Model.RiskReasons)
+        {
+          <li style="margin-bottom:4px;">@x</li>
+        }
+      </ul>
+    }
+    <div class="action-box @(Model.RiskLevel == "High" ? "high-box" : "")">
+      <strong>Recommended Action:</strong> @Model.RecommendedAction
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Auto-Generated ANC Schedule</h3>
+    <div class="schedule-grid">
+      @foreach (var slot in Model.AncSchedule)
+      {
+        <div class="schedule-slot">
+          <strong>@slot.Label &bull; @slot.WindowText</strong>
+          <div class="small muted" style="margin-bottom:8px;">
+            @(slot.CompletedOn.HasValue ? $"Done on {slot.CompletedOn:dd MMM yyyy}" : $"Due by {slot.DueDate:dd MMM yyyy}")
+          </div>
+          <span class="pill @(slot.Status == "Done" ? "low" : slot.Status == "Overdue" ? "high" : "medium")" style="animation:none;">@slot.Status</span>
+        </div>
+      }
+    </div>
+  </div>
 </div>
 
 <div class="card">
-  <h3>Why @r.Level risk?</h3>
-  @if (r.Reasons.Count == 0) { <p class="muted">No risk factors found.</p> }
-  <ul>@foreach (var x in r.Reasons) { <li>@x</li> }</ul>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+    <h3 style="margin:0;">ANC Visits (@m.Visits.Count)</h3>
+    @if (isStaff)
+    {
+      <a class="btn small" style="margin-left:0;" asp-action="AddVisit" asp-route-id="@m.Id">+ Add Visit</a>
+    }
+  </div>
+  @if (!m.Visits.Any())
+  {
+    <p class="muted">No antenatal check-ups recorded yet.</p>
+  }
+  else
+  {
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>BP</th>
+          <th>Hb</th>
+          <th>Sugar</th>
+          <th>Weight</th>
+          <th>Urine</th>
+          <th>Fetal HR</th>
+          <th>Next Visit</th>
+          <th>Notes</th>
+          @if (isStaff) { <th>Actions</th> }
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var v in m.Visits.OrderByDescending(x => x.VisitDate))
+        {
+          <tr>
+            <td>@v.VisitDate.ToString("dd MMM yyyy")</td>
+            <td>@v.Systolic/@v.Diastolic</td>
+            <td>@v.Hb</td>
+            <td>@v.BloodSugar</td>
+            <td>@(v.WeightKg.HasValue ? $"{v.WeightKg:0.0} kg" : "—")</td>
+            <td>@(string.IsNullOrWhiteSpace(v.UrineProtein) ? "Nil" : v.UrineProtein)</td>
+            <td>@(v.FetalHeartbeat.HasValue ? $"{v.FetalHeartbeat} bpm" : "—")</td>
+            <td>@(v.NextVisitDate.HasValue ? v.NextVisitDate.Value.ToString("dd MMM yyyy") : "—")</td>
+            <td>@v.Notes</td>
+            @if (isStaff)
+            {
+              <td style="white-space:nowrap;">
+                <a class="btn ghost small" style="margin-left:0;" asp-action="EditVisit" asp-route-id="@v.Id">Edit</a>
+                <form asp-action="DeleteVisit" asp-route-id="@v.Id" method="post" style="display:inline;" onsubmit="return confirm('Delete this ANC visit?');">
+                  @Html.AntiForgeryToken()
+                  <button type="submit" class="btn small">Delete</button>
+                </form>
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
 </div>
 
-<div class="card">
-  <h3>ANC visits <a class="btn small" asp-action="AddVisit" asp-route-id="@Model.Id">+ Add visit</a></h3>
-  <table>
-    <tr><th>Date</th><th>BP</th><th>Hb</th><th>Sugar</th><th>Notes</th></tr>
-    @foreach (var v in Model.Visits.OrderByDescending(v => v.VisitDate))
-    { <tr><td>@v.VisitDate.ToString("dd MMM yyyy")</td><td>@v.Systolic/@v.Diastolic</td><td>@v.Hb</td><td>@v.BloodSugar</td><td>@v.Notes</td></tr> }
-  </table>
-</div>
+<div class="grid-2">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+      <h3 style="margin:0;">Appointments (@m.Appointments.Count)</h3>
+      @if (isStaff)
+      {
+        <a class="btn teal small" style="margin-left:0;" asp-controller="Appointments" asp-action="Create" asp-route-motherId="@m.Id">+ Book</a>
+      }
+    </div>
+    @if (!m.Appointments.Any())
+    {
+      <p class="muted">No appointments booked yet.</p>
+    }
+    else
+    {
+      <div class="list-stack">
+        @foreach (var a in m.Appointments.OrderByDescending(x => x.ScheduledDate))
+        {
+          <div class="list-row">
+            <div>
+              <strong>@a.Purpose</strong>
+              <small>@a.ScheduledDate.ToString("dd MMM yyyy") @(string.IsNullOrWhiteSpace(a.Notes) ? "" : $"• {a.Notes}")</small>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              <span class="pill @(a.Status == "Attended" ? "low" : a.Status == "Missed" ? "high" : "medium")" style="animation:none;">@a.Status</span>
+              @if (isStaff && a.Status == "Scheduled")
+              {
+                <form asp-controller="Appointments" asp-action="MarkStatus" method="post" style="display:inline;">
+                  @Html.AntiForgeryToken()
+                  <input type="hidden" name="id" value="@a.Id" />
+                  <input type="hidden" name="status" value="Attended" />
+                  <input type="hidden" name="returnTo" value="mother" />
+                  <button type="submit" class="btn teal small" style="margin-left:0;">Attended</button>
+                </form>
+                <form asp-controller="Appointments" asp-action="MarkStatus" method="post" style="display:inline;">
+                  @Html.AntiForgeryToken()
+                  <input type="hidden" name="id" value="@a.Id" />
+                  <input type="hidden" name="status" value="Missed" />
+                  <input type="hidden" name="returnTo" value="mother" />
+                  <button type="submit" class="btn small" style="margin-left:0;">Missed</button>
+                </form>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
 
-<div class="card">
-  <h3>Newborns <a class="btn small" asp-controller="Newborns" asp-action="Create" asp-route-motherId="@Model.Id">+ Register baby</a></h3>
-  @foreach (var n in Model.Newborns) { <p><a asp-controller="Newborns" asp-action="Details" asp-route-id="@n.Id">@n.Name</a> &mdash; born @n.Dob.ToString("dd MMM yyyy")</p> }
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+      <h3 style="margin:0;">Deliveries &amp; Newborns</h3>
+      @if (isStaff)
+      {
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a class="btn teal small" style="margin-left:0;" asp-controller="Newborns" asp-action="RecordDelivery" asp-route-motherId="@m.Id">+ Record Delivery</a>
+          <a class="btn small" style="margin-left:0;" asp-controller="Newborns" asp-action="Create" asp-route-motherId="@m.Id">+ Register Baby</a>
+        </div>
+      }
+    </div>
+    @if (m.Deliveries.Any())
+    {
+      <div style="margin-bottom:12px;">
+        @foreach (var d in m.Deliveries.OrderByDescending(x => x.DeliveryDate))
+        {
+          <div class="list-row" style="margin-bottom:8px;">
+            <div>
+              <strong>@d.DeliveryType Delivery &mdash; @d.Outcome</strong>
+              <small>@d.DeliveryDate.ToString("dd MMM yyyy") &bull; @d.Place @(string.IsNullOrWhiteSpace(d.Complications) || d.Complications == "None" ? "" : $"• {d.Complications}")</small>
+            </div>
+            <span class="pill low">Recorded</span>
+          </div>
+        }
+      </div>
+    }
+    @if (!m.Newborns.Any())
+    {
+      <p class="muted">No newborns registered under this mother yet.</p>
+    }
+    @foreach (var n in m.Newborns)
+    {
+      <div class="list-row" style="margin-bottom:8px;">
+        <div>
+          <a asp-controller="Newborns" asp-action="Details" asp-route-id="@n.Id"><strong>@n.Name</strong></a>
+          <small>Born @n.Dob.ToString("dd MMM yyyy") &bull; @n.Gender &bull; @n.BirthWeight kg @(n.ApgarScore.HasValue ? $"• APGAR {n.ApgarScore}" : "")</small>
+          @if (n.IsLowBirthWeight) { <span class="pill high" style="animation:none;margin-left:4px;">LBW</span> }
+          @if (n.IsPreterm) { <span class="pill medium" style="margin-left:4px;">Preterm</span> }
+        </div>
+        <a class="btn ghost small" style="margin-left:0;" asp-controller="Newborns" asp-action="Details" asp-route-id="@n.Id">Growth &amp; Vaccines</a>
+      </div>
+    }
+  </div>
 </div>

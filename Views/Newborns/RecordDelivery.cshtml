@@ -1,0 +1,50 @@
+@* RecordDelivery.cshtml - record a delivery outcome linked to a mother and optionally proceed to newborn registration. *@
+@model DeliveryFormViewModel
+@{
+    ViewData["Title"] = "Record Delivery";
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Record Delivery</h2>
+    <p>Mother: <strong>@Model.MotherName</strong></p>
+  </div>
+  <a class="btn ghost" asp-controller="Mothers" asp-action="Details" asp-route-id="@Model.MotherId">&larr; Back to Mother</a>
+</div>
+
+<form method="post" class="card form" style="max-width:560px;" novalidate>
+  @Html.AntiForgeryToken()
+  <input type="hidden" asp-for="MotherId" />
+  <input type="hidden" asp-for="MotherName" />
+  <div asp-validation-summary="All" class="err"></div>
+
+  <label asp-for="DeliveryDate">Delivery Date</label>
+  <input asp-for="DeliveryDate" type="date" />
+
+  <label asp-for="DeliveryType">Delivery Type</label>
+  <select asp-for="DeliveryType">
+    <option value="Normal">Normal Vaginal Delivery</option>
+    <option value="C-Section">C-Section (Caesarean)</option>
+  </select>
+
+  <label asp-for="Place">Place of Delivery</label>
+  <input asp-for="Place" placeholder="e.g. Phagwara PHC, Civil Hospital" />
+
+  <label asp-for="Outcome">Outcome</label>
+  <select asp-for="Outcome">
+    <option value="Live Birth">Live Birth</option>
+    <option value="NICU Referral">Live Birth (NICU Referral)</option>
+    <option value="Stillbirth">Stillbirth</option>
+  </select>
+
+  <label asp-for="Complications">Complications (if any)</label>
+  <input asp-for="Complications" placeholder="None, Preterm labour, PPH, etc." />
+
+  <label class="check" style="margin-top:14px;display:inline-flex;align-items:center;gap:8px;">
+    <input asp-for="RegisterBabyNext" /> Register newborn baby immediately after saving
+  </label>
+
+  <div style="margin-top:20px;">
+    <button type="submit" class="btn">Save Delivery Record</button>
+  </div>
+</form>

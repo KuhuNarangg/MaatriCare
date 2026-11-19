@@ -1,0 +1,84 @@
+@* Edit.cshtml - Admin form to edit user details, role, assigned villages, linked mother, or reset password. *@
+@model UserFormViewModel
+@{
+    ViewData["Title"] = "Edit User";
+    var villages = ViewBag.Villages as List<string> ?? new();
+    var mothers = ViewBag.Mothers as List<Mother> ?? new();
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Edit User: @Model.Username</h2>
+    <p>Update role permissions, village assignments, or password.</p>
+  </div>
+  <a class="btn ghost" asp-action="Index">&larr; Back to Users</a>
+</div>
+
+<form method="post" class="card form" style="max-width:560px;" novalidate>
+  @Html.AntiForgeryToken()
+  <input type="hidden" asp-for="Id" />
+  <input type="hidden" asp-for="Username" />
+  <div asp-validation-summary="All" class="err" style="margin-bottom:10px;"></div>
+
+  <label asp-for="FullName">Full Name</label>
+  <input asp-for="FullName" />
+
+  <label asp-for="Phone">Phone Number</label>
+  <input asp-for="Phone" />
+
+  <label asp-for="Role">Role</label>
+  <select asp-for="Role" id="roleSelect">
+    <option value="Admin">Admin</option>
+    <option value="Doctor">Doctor</option>
+    <option value="HealthWorker">HealthWorker</option>
+    <option value="Mother">Mother</option>
+  </select>
+
+  <div id="villageGroup" style="margin-top:14px;">
+    <label>Assigned Villages (for HealthWorker)</label>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:6px;">
+      @foreach (var v in villages)
+      {
+        <label class="check" style="margin:0;display:inline-flex;align-items:center;gap:6px;">
+          <input type="checkbox" name="SelectedVillages" value="@v" @(Model.SelectedVillages.Contains(v) ? "checked" : "") /> @v
+        </label>
+      }
+    </div>
+  </div>
+
+  <div id="motherGroup" style="margin-top:14px;">
+    <label asp-for="MotherId">Link to Mother Record (for Mother role)</label>
+    <select asp-for="MotherId">
+      <option value="">-- Select a mother --</option>
+      @foreach (var m in mothers)
+      {
+        <option value="@m.Id">@m.Name (@m.Village)</option>
+      }
+    </select>
+  </div>
+
+  <label asp-for="Password">Reset Password (leave blank to keep current)</label>
+  <input asp-for="Password" type="password" placeholder="Optional new password (min 6 chars)" />
+
+  <label class="check" style="margin-top:16px;display:inline-flex;align-items:center;gap:8px;">
+    <input asp-for="IsActive" /> Account is active
+  </label>
+
+  <div style="margin-top:20px;">
+    <button type="submit" class="btn">Save Changes</button>
+  </div>
+</form>
+
+@section Scripts {
+  <script>
+    const sel = document.getElementById('roleSelect');
+    const vg = document.getElementById('villageGroup');
+    const mg = document.getElementById('motherGroup');
+    function syncRoleFields() {
+      vg.style.display = sel.value === 'HealthWorker' ? 'block' : 'none';
+      mg.style.display = sel.value === 'Mother' ? 'block' : 'none';
+    }
+    sel.addEventListener('change', syncRoleFields);
+    syncRoleFields();
+  </script>
+}

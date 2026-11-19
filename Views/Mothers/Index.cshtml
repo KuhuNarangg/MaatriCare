@@ -1,18 +1,129 @@
-@model List<Mother>
-<h2>Mothers</h2>
-<form method="get" class="search"><input name="q" value="@ViewBag.Q" placeholder="Search name or village" /><button class="btn">Search</button></form>
+@* Index.cshtml - Mothers directory with search, village/risk/trimester filters, sorting, and pagination. *@
+@model MotherListViewModel
+@{
+    ViewData["Title"] = "Mothers";
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Mothers Directory</h2>
+    <p>Showing @Model.Items.Count of @Model.TotalCount registered mother(s).</p>
+  </div>
+  <div class="quick-actions">
+    <a class="btn" asp-action="Create">+ Register Mother</a>
+    <a class="btn teal" asp-controller="Appointments" asp-action="Create">+ Book Appointment</a>
+  </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+  <div class="card" style="background:var(--sage);color:var(--sage-ink);border-color:transparent;padding:12px 18px;">
+    @TempData["Success"]
+  </div>
+}
+
+<form method="get" class="card filter-bar">
+  <input name="q" value="@Model.Query" placeholder="Search name, village, or phone..." />
+
+  <select name="village">
+    <option value="">All Villages</option>
+    @foreach (var v in Model.Villages)
+    {
+      <option value="@v" selected="@(Model.Village == v)">@v</option>
+    }
+  </select>
+
+  <select name="risk">
+    <option value="">All Risk Levels</option>
+    <option value="High" selected="@(Model.Risk == "High")">High Risk</option>
+    <option value="Medium" selected="@(Model.Risk == "Medium")">Medium Risk</option>
+    <option value="Low" selected="@(Model.Risk == "Low")">Low Risk</option>
+  </select>
+
+  <select name="trimester">
+    <option value="">All Trimesters</option>
+    <option value="1" selected="@(Model.Trimester == 1)">1st Trimester (W1–12)</option>
+    <option value="2" selected="@(Model.Trimester == 2)">2nd Trimester (W13–26)</option>
+    <option value="3" selected="@(Model.Trimester == 3)">3rd Trimester (W27–40)</option>
+  </select>
+
+  <select name="sort">
+    <option value="name" selected="@(Model.Sort == "name")">Sort: Name (A–Z)</option>
+    <option value="risk" selected="@(Model.Sort == "risk")">Sort: Highest Risk</option>
+    <option value="week" selected="@(Model.Sort == "week")">Sort: Pregnancy Week</option>
+    <option value="edd" selected="@(Model.Sort == "edd")">Sort: Soonest EDD</option>
+  </select>
+
+  <button type="submit" class="btn teal">Apply</button>
+  <a asp-action="Index" class="btn ghost">Reset</a>
+</form>
+
 <div class="card">
-<table>
-  <tr><th>Name</th><th>Village</th><th>Week</th><th>EDD</th><th>Risk</th></tr>
-  @foreach (var m in Model)
+  @if (!Model.Items.Any())
   {
-    var r = RiskService.Evaluate(m);
-    <tr>
-      <td><a asp-action="Details" asp-route-id="@m.Id">@m.Name</a></td>
-      <td>@m.Village</td><td>@m.Week</td><td>@m.Edd.ToString("dd MMM yyyy")</td>
-      <td><span class="pill @r.Level.ToLower()">@r.Level</span></td>
-    </tr>
+    <div class="empty-state">
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="26" fill="#F3EAE0"/><circle cx="26" cy="26" r="9" stroke="#1F5F5B" stroke-width="3"/><path d="M33 33l7 7" stroke="#F2785C" stroke-width="3.5" stroke-linecap="round"/></svg>
+      <h3>No mothers match your filters</h3>
+      <p>Try clearing your search or selecting a different village or risk level.</p>
+    </div>
   }
-</table>
-@if (!Model.Any()) { <p class="muted">No mothers found.</p> }
+  else
+  {
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Village</th>
+          <th>Trimester / Week</th>
+          <th>EDD</th>
+          <th>Risk</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var row in Model.Items)
+        {
+          var m = row.Mother;
+          <tr>
+            <td>
+              <a asp-action="Details" asp-route-id="@m.Id"><strong>@m.Name</strong></a><br />
+              <small class="muted">Age @m.Age &bull; @m.Phone</small>
+            </td>
+            <td>@m.Village</td>
+            <td>Week @m.Week <span class="small muted">(T@m.Trimester)</span></td>
+            <td>@m.Edd.ToString("dd MMM yyyy")</td>
+            <td><span class="pill @row.RiskLevel.ToLower()">@row.RiskLevel (@row.RiskScore)</span></td>
+            <td style="white-space:nowrap;">
+              <a class="btn ghost small" style="margin-left:0;" asp-action="Edit" asp-route-id="@m.Id">Edit</a>
+              <form asp-action="Delete" asp-route-id="@m.Id" method="post" style="display:inline;" onsubmit="return confirm('Delete @m.Name and all her ANC visits?');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn small">Delete</button>
+              </form>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    @if (Model.TotalPages > 1)
+    {
+      <div class="pagination">
+        <span class="small muted">Page @Model.Page of @Model.TotalPages (@Model.TotalCount total)</span>
+        <div class="page-links">
+          @if (Model.Page > 1)
+          {
+            <a class="page-btn" asp-action="Index" asp-route-q="@Model.Query" asp-route-village="@Model.Village" asp-route-risk="@Model.Risk" asp-route-trimester="@Model.Trimester" asp-route-sort="@Model.Sort" asp-route-page="@(Model.Page - 1)">&larr; Prev</a>
+          }
+          @for (int p = 1; p <= Model.TotalPages; p++)
+          {
+            <a class="page-btn @(p == Model.Page ? "active" : "")" asp-action="Index" asp-route-q="@Model.Query" asp-route-village="@Model.Village" asp-route-risk="@Model.Risk" asp-route-trimester="@Model.Trimester" asp-route-sort="@Model.Sort" asp-route-page="@p">@p</a>
+          }
+          @if (Model.Page < Model.TotalPages)
+          {
+            <a class="page-btn" asp-action="Index" asp-route-q="@Model.Query" asp-route-village="@Model.Village" asp-route-risk="@Model.Risk" asp-route-trimester="@Model.Trimester" asp-route-sort="@Model.Sort" asp-route-page="@(Model.Page + 1)">Next &rarr;</a>
+          }
+        </div>
+      </div>
+    }
+  }
 </div>

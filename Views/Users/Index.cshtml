@@ -1,0 +1,82 @@
+@* Index.cshtml - Admin user management table with role badges, village assignments, and status toggle. *@
+@model List<AppUser>
+@{
+    ViewData["Title"] = "User Management";
+    var mothersMap = ViewBag.Mothers as Dictionary<int, string> ?? new();
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Users &amp; Roles</h2>
+    <p>Manage clinic accounts, assign health workers to villages, and link mother accounts.</p>
+  </div>
+  <div class="quick-actions">
+    <a class="btn" asp-action="Create">+ Add User</a>
+  </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+  <div class="card" style="background:var(--sage);color:var(--sage-ink);border-color:transparent;padding:14px 18px;">
+    @TempData["Success"]
+  </div>
+}
+@if (TempData["Error"] != null)
+{
+  <div class="card" style="background:var(--rose);color:var(--rose-ink);border-color:transparent;padding:14px 18px;">
+    @TempData["Error"]
+  </div>
+}
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Full Name</th>
+        <th>Phone</th>
+        <th>Role</th>
+        <th>Scope</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach (var u in Model)
+      {
+        <tr>
+          <td><strong>@u.Username</strong></td>
+          <td>@(string.IsNullOrWhiteSpace(u.FullName) ? "—" : u.FullName)</td>
+          <td>@(string.IsNullOrWhiteSpace(u.Phone) ? "—" : u.Phone)</td>
+          <td><span class="pill @(u.Role == "Admin" ? "high" : u.Role == "Doctor" ? "low" : "medium")" style="animation:none;">@u.Role</span></td>
+          <td>
+            @if (u.Role == "HealthWorker")
+            {
+              <span class="small muted">@(string.IsNullOrWhiteSpace(u.AssignedVillages) ? "No villages assigned" : u.AssignedVillages)</span>
+            }
+            else if (u.Role == "Mother" && u.MotherId.HasValue && mothersMap.ContainsKey(u.MotherId.Value))
+            {
+              <span class="small muted">Linked: @mothersMap[u.MotherId.Value]</span>
+            }
+            else
+            {
+              <span class="small muted">Clinic-wide</span>
+            }
+          </td>
+          <td>
+            <span class="pill @(u.IsActive ? "low" : "high")" style="animation:none;">@(u.IsActive ? "Active" : "Deactivated")</span>
+          </td>
+          <td style="white-space:nowrap;">
+            <a class="btn ghost small" style="margin-left:0;" asp-action="Edit" asp-route-id="@u.Id">Edit</a>
+            <form asp-action="ToggleActive" asp-route-id="@u.Id" method="post" style="display:inline;">
+              @Html.AntiForgeryToken()
+              <button type="submit" class="btn small @(u.IsActive ? "" : "teal")">
+                @(u.IsActive ? "Deactivate" : "Reactivate")
+              </button>
+            </form>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

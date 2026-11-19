@@ -1,0 +1,41 @@
+@* Create.cshtml - book a new antenatal appointment for a registered mother. *@
+@model AppointmentFormViewModel
+@{
+    ViewData["Title"] = "Book Appointment";
+    var mothers = ViewBag.Mothers as List<Mother> ?? new();
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Book Appointment</h2>
+    <p>Schedule an upcoming antenatal check-up or specialist follow-up.</p>
+  </div>
+  <a class="btn ghost" asp-action="Index">&larr; Back to Appointments</a>
+</div>
+
+<form method="post" class="card form" style="max-width:540px;" novalidate>
+  @Html.AntiForgeryToken()
+  <div asp-validation-summary="All" class="err"></div>
+
+  <label asp-for="MotherId">Mother</label>
+  <select asp-for="MotherId">
+    <option value="">-- Select a mother --</option>
+    @foreach (var m in mothers)
+    {
+      <option value="@m.Id">@m.Name (@m.Village — Week @m.Week)</option>
+    }
+  </select>
+
+  <label asp-for="ScheduledDate">Appointment Date</label>
+  <input asp-for="ScheduledDate" type="date" />
+
+  <label asp-for="Purpose">Purpose</label>
+  <input asp-for="Purpose" placeholder="e.g. Routine ANC Check-up, BP Follow-up" />
+
+  <label asp-for="Notes">Notes (optional)</label>
+  <input asp-for="Notes" placeholder="Instructions for health worker or doctor" />
+
+  <div style="margin-top:20px;">
+    <button type="submit" class="btn">Book Appointment</button>
+  </div>
+</form>

@@ -1,0 +1,81 @@
+@* EditVisit.cshtml - edit an existing antenatal check-up visit. *@
+@model AncVisitFormViewModel
+@{
+    ViewData["Title"] = "Edit ANC Visit";
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Edit ANC Visit</h2>
+    <p>Mother: <strong>@Model.MotherName</strong></p>
+  </div>
+  <a class="btn ghost" asp-action="Details" asp-route-id="@Model.MotherId">&larr; Back to Profile</a>
+</div>
+
+<form method="post" class="card form" style="max-width:640px;" novalidate>
+  @Html.AntiForgeryToken()
+  <input type="hidden" asp-for="Id" />
+  <input type="hidden" asp-for="MotherId" />
+  <input type="hidden" asp-for="MotherName" />
+  <div asp-validation-summary="All" class="err"></div>
+
+  <div class="grid-2">
+    <div>
+      <label asp-for="VisitDate">Visit Date</label>
+      <input asp-for="VisitDate" type="date" />
+    </div>
+    <div>
+      <label asp-for="NextVisitDate">Next Visit Date (optional)</label>
+      <input asp-for="NextVisitDate" type="date" />
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <label asp-for="Systolic">Systolic BP (mmHg)</label>
+      <input asp-for="Systolic" type="number" />
+    </div>
+    <div>
+      <label asp-for="Diastolic">Diastolic BP (mmHg)</label>
+      <input asp-for="Diastolic" type="number" />
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <label asp-for="Hb">Hemoglobin — Hb (g/dL)</label>
+      <input asp-for="Hb" type="number" step="0.1" />
+    </div>
+    <div>
+      <label asp-for="BloodSugar">Blood Sugar (mg/dL)</label>
+      <input asp-for="BloodSugar" type="number" />
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <label asp-for="WeightKg">Weight (kg)</label>
+      <input asp-for="WeightKg" type="number" step="0.1" />
+    </div>
+    <div>
+      <label asp-for="FetalHeartbeat">Fetal Heartbeat (bpm)</label>
+      <input asp-for="FetalHeartbeat" type="number" />
+    </div>
+  </div>
+
+  <label asp-for="UrineProtein">Urine Protein</label>
+  <select asp-for="UrineProtein">
+    <option value="Nil">Nil (Normal)</option>
+    <option value="Trace">Trace</option>
+    <option value="+1">+1 (Mild proteinuria)</option>
+    <option value="+2">+2 (Moderate — pre-eclampsia risk)</option>
+    <option value="+3">+3 (Severe — urgent referral)</option>
+  </select>
+
+  <label asp-for="Notes">Clinical Notes</label>
+  <input asp-for="Notes" />
+
+  <div style="margin-top:20px;">
+    <button type="submit" class="btn">Update Visit</button>
+  </div>
+</form>

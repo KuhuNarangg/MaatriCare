@@ -1,0 +1,69 @@
+@* Faq.cshtml - frequently asked questions with an accessible vanilla JS accordion. *@
+@{
+    Layout = "_PublicLayout";
+    ViewData["Title"] = "FAQ";
+}
+
+<section class="page-hero">
+  <div class="container">
+    <span class="chip chip-sage">Questions &amp; Answers</span>
+    <h1>Frequently Asked Questions</h1>
+    <p>Quick answers about MaatriCare's risk scoring, vaccine schedules, data safety, and staff access.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="faq-list">
+      <div class="faq-item open">
+        <button type="button" class="faq-q" aria-expanded="true">
+          <span>How does MaatriCare calculate pregnancy risk?</span>
+          <span class="plus">+</span>
+        </button>
+        <div class="faq-a">
+          <p>MaatriCare uses a transparent, rule-based score: age under 18 or over 35 (+2), previous C-section (+2), high blood pressure &ge;140/90 (+3), severe anaemia Hb &lt; 7 (+3) or mild anaemia Hb &lt; 11 (+1), blood sugar &ge;140 (+2), and overdue ANC visits (+1). Scores 5+ are High risk, 2–4 are Medium, and 0–1 are Low—with every reason listed clearly.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button type="button" class="faq-q" aria-expanded="false">
+          <span>Which vaccines are automatically scheduled for newborns?</span>
+          <span class="plus">+</span>
+        </button>
+        <div class="faq-a">
+          <p>Based on India's Universal Immunisation Programme (UIP), MaatriCare automatically creates 7 records from the baby's date of birth: BCG, OPV 0, and Hepatitis B (at birth), Pentavalent 1 + Rota 1 + IPV 1 (42 days), Pentavalent 2 + Rota 2 (70 days), Pentavalent 3 + Rota 3 + IPV 2 (98 days), and MR 1 (270 days).</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button type="button" class="faq-q" aria-expanded="false">
+          <span>Who can sign in to the MaatriCare portal?</span>
+          <span class="plus">+</span>
+        </button>
+        <div class="faq-a">
+          <p>Authorized clinic staff—including Administrators, Doctors, and Village Health Workers (ANMs/ASHAs)—can sign in via the Staff Login page using their assigned credentials.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button type="button" class="faq-q" aria-expanded="false">
+          <span>Does MaatriCare work on mobile phones during village visits?</span>
+          <span class="plus">+</span>
+        </button>
+        <div class="faq-a">
+          <p>Yes. Every page—from the public site and login screen to mother profiles and vaccination tables—is responsive and designed for narrow mobile screens.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button type="button" class="faq-q" aria-expanded="false">
+          <span>How is expected delivery date (EDD) calculated?</span>
+          <span class="plus">+</span>
+        </button>
+        <div class="faq-a">
+          <p>EDD is automatically computed by adding 280 days (40 weeks) to the mother's recorded Last Menstrual Period (LMP), following standard obstetric practice.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

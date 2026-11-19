@@ -1,0 +1,85 @@
+@* Create.cshtml - Admin form to create a new user with role, village assignment, or mother record link. *@
+@model UserFormViewModel
+@{
+    ViewData["Title"] = "Add User";
+    var villages = ViewBag.Villages as List<string> ?? new();
+    var mothers = ViewBag.Mothers as List<Mother> ?? new();
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Add New User</h2>
+    <p>Create a login for an Admin, Doctor, Health Worker, or Mother.</p>
+  </div>
+  <a class="btn ghost" asp-action="Index">&larr; Back to Users</a>
+</div>
+
+<form method="post" class="card form" style="max-width:560px;" novalidate>
+  @Html.AntiForgeryToken()
+  <div asp-validation-summary="All" class="err" style="margin-bottom:10px;"></div>
+
+  <label asp-for="Username">Username</label>
+  <input asp-for="Username" placeholder="e.g. anm_hadiabad" />
+
+  <label asp-for="FullName">Full Name</label>
+  <input asp-for="FullName" placeholder="e.g. Kamaljit Kaur" />
+
+  <label asp-for="Phone">Phone Number</label>
+  <input asp-for="Phone" placeholder="e.g. 9876500199" />
+
+  <label asp-for="Password">Initial Password</label>
+  <input asp-for="Password" type="password" placeholder="Minimum 6 characters" />
+
+  <label asp-for="Role">Role</label>
+  <select asp-for="Role" id="roleSelect">
+    <option value="Admin">Admin</option>
+    <option value="Doctor">Doctor</option>
+    <option value="HealthWorker">HealthWorker</option>
+    <option value="Mother">Mother</option>
+  </select>
+
+  <div id="villageGroup" style="margin-top:14px;">
+    <label>Assigned Villages (for HealthWorker)</label>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:6px;">
+      @foreach (var v in villages)
+      {
+        <label class="check" style="margin:0;display:inline-flex;align-items:center;gap:6px;">
+          <input type="checkbox" name="SelectedVillages" value="@v" @(Model.SelectedVillages.Contains(v) ? "checked" : "") /> @v
+        </label>
+      }
+    </div>
+  </div>
+
+  <div id="motherGroup" style="margin-top:14px;">
+    <label asp-for="MotherId">Link to Mother Record (for Mother role)</label>
+    <select asp-for="MotherId">
+      <option value="">-- Select a mother --</option>
+      @foreach (var m in mothers)
+      {
+        <option value="@m.Id">@m.Name (@m.Village)</option>
+      }
+    </select>
+  </div>
+
+  <label class="check" style="margin-top:16px;display:inline-flex;align-items:center;gap:8px;">
+    <input asp-for="IsActive" /> Account is active
+  </label>
+
+  <div style="margin-top:20px;">
+    <button type="submit" class="btn">Create User</button>
+  </div>
+</form>
+
+@section Scripts {
+  <script>
+    const sel = document.getElementById('roleSelect');
+    const vg = document.getElementById('villageGroup');
+    const mg = document.getElementById('motherGroup');
+    function syncRoleFields() {
+      vg.style.display = sel.value === 'HealthWorker' ? 'block' : 'none';
+      mg.style.display = sel.value === 'Mother' ? 'block' : 'none';
+    }
+    sel.addEventListener('change', syncRoleFields);
+    syncRoleFields();
+  </script>
+}

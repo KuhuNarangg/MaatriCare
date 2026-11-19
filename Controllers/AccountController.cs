@@ -1,28 +1,57 @@
-// AccountController.cs - login and logout using cookie authentication.
+// AccountController.cs - login, logout, and Access Denied page using cookie authentication.
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MaatriCare.Data;
+using MaatriCare.Services;
+using MaatriCare.ViewModels;
 namespace MaatriCare.Controllers;
 
 [AllowAnonymous]
 public class AccountController : Controller
 {
-    private readonly AppDbContext db;
-    public AccountController(AppDbContext db) { this.db = db; }
+    private readonly AuthService auth;
+    public AccountController(AuthService auth) { this.auth = auth; }
 
-    public IActionResult Login() => View();
+    public IActionResult Login(string returnUrl = null)
+    {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var role = User.FindFirstValue(ClaimTypes.Role);
+            var (action, controller) = auth.GetDashboardRouteForRole(role);
+            return RedirectToAction(action, controller);
+        }
+        return View(new LoginViewModel { ReturnUrl = returnUrl });
+    }
 
     [HttpPost]
-    public async Task<IActionResult> Login(string username, string password)
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Login(LoginViewModel vm)
     {
-        var hash = DbSeeder.Hash(password ?? "");
-        var u = db.Users.FirstOrDefault(x => x.Username == username && x.PasswordHash == hash);
-        if (u == null) { ViewBag.Error = "Wrong username or password"; return View(); }
-        var claims = new List<Claim> { new(ClaimTypes.Name, u.Username), new(ClaimTypes.Role, u.Role) };
+        if (!ModelState.IsValid) return View(vm);
+
+        var (user, error) = await auth.ValidateUserAsync(vm.Username, vm.Password);
+        if (user == null)
+        {
+            ModelState.AddModelError(string.Empty, error);
+            return View(vm);
+        }
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.Name, user.Username),
+            new(ClaimTypes.Role, user.Role)
+        };
+        if (user.MotherId.HasValue)
+            claims.Add(new Claim("MotherId", user.MotherId.Value.ToString()));
+
         await HttpContext.SignInAsync("Cookies", new ClaimsPrincipal(new ClaimsIdentity(claims, "Cookies")));
-        return RedirectToAction("Index", "Home");
+
+        if (!string.IsNullOrEmpty(vm.ReturnUrl) && Url.IsLocalUrl(vm.ReturnUrl))
+            return Redirect(vm.ReturnUrl);
+
+        var (action, controller) = auth.GetDashboardRouteForRole(user.Role);
+        return RedirectToAction(action, controller);
     }
 
     public async Task<IActionResult> Logout()
@@ -30,4 +59,6 @@ public class AccountController : Controller
         await HttpContext.SignOutAsync("Cookies");
         return RedirectToAction("Login");
     }
+
+    public IActionResult AccessDenied() => View();
 }

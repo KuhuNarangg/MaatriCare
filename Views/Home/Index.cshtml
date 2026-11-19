@@ -1,19 +1,398 @@
-@{ int total = ViewBag.Total == 0 ? 1 : ViewBag.Total; }
-<h2>Dashboard</h2>
-<div class="grid">
-  <div class="card stat"><b>@ViewBag.Total</b>Mothers registered</div>
-  <div class="card stat"><b>@ViewBag.High</b>High risk</div>
-  <div class="card stat"><b>@ViewBag.Newborns</b>Newborns</div>
-  <div class="card stat"><b>@ViewBag.OverdueVaccines</b>Overdue vaccines</div>
-</div>
-<div class="card">
-  <h3>Risk distribution</h3>
-  <div class="bar"><span class="low" style="width:@(ViewBag.Low * 100 / total)%">Low @ViewBag.Low</span></div>
-  <div class="bar"><span class="med" style="width:@(ViewBag.Medium * 100 / total)%">Medium @ViewBag.Medium</span></div>
-  <div class="bar"><span class="high" style="width:@(ViewBag.High * 100 / total)%">High @ViewBag.High</span></div>
-</div>
-<div class="card">
-  <h3>Deliveries expected in the next 30 days</h3>
-  @if (((List<Mother>)ViewBag.DueSoon).Count == 0) { <p class="muted">No deliveries due soon.</p> }
-  @foreach (var m in (List<Mother>)ViewBag.DueSoon) { <p><a asp-controller="Mothers" asp-action="Details" asp-route-id="@m.Id">@m.Name</a> &mdash; EDD @m.Edd.ToString("dd MMM yyyy")</p> }
-</div>
+@* Index.cshtml - role-based dashboard for Admin/Doctor, HealthWorker, and Mother with Chart.js charts. *@
+@using System.Text.Json
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+@if (Model.Role == "Mother")
+{
+  <div class="dash-header">
+    <div>
+      <h2>Welcome, @(Model.LinkedMother?.Name ?? Model.Username)</h2>
+      <p>Your personal pregnancy journey and newborn vaccination tracker.</p>
+    </div>
+  </div>
+
+  @if (Model.LinkedMother == null)
+  {
+    <div class="card empty-state">
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="30" fill="#F3EAE0"/><path d="M32 44s-12-7.5-12-16a7 7 0 0 1 12-4.8A7 7 0 0 1 44 28c0 8.5-12 16-12 16Z" fill="#F2785C"/></svg>
+      <h3>No maternal profile linked yet</h3>
+      <p>Please ask your clinic health worker to link your mother record to this account.</p>
+    </div>
+  }
+  else
+  {
+    var m = Model.LinkedMother;
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-label">Pregnancy Week</span>
+        <span class="kpi-val">Week @m.Week <span class="small muted">/ 40</span></span>
+        <span class="kpi-sub">EDD: @m.Edd.ToString("dd MMM yyyy")</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Next Recommended Visit</span>
+        <span class="kpi-val" style="font-size:1.45rem;">@(Model.NextRecommendedAncDate?.ToString("dd MMM yyyy") ?? "Schedule soon")</span>
+        <span class="kpi-sub">Village: @m.Village</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Current Health Status</span>
+        <div><span class="pill @Model.LinkedMotherRiskLevel.ToLower()">@Model.LinkedMotherRiskLevel Risk</span></div>
+        <span class="kpi-sub">Based on @m.Visits.Count ANC check-up(s)</span>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Pregnancy Journey</h3>
+        <p class="muted">Week <strong>@m.Week</strong> of 40 &bull; Expected delivery on <strong>@m.Edd.ToString("dd MMM yyyy")</strong></p>
+        <div class="journey"><div style="width:@(m.Week * 100 / 40)%"></div></div>
+        <p class="small muted">Keep attending regular antenatal visits and taking your prescribed IFA &amp; calcium tablets.</p>
+        <a class="btn teal small" style="margin-left:0;margin-top:8px;" asp-controller="Mothers" asp-action="Details" asp-route-id="@m.Id">View My Full Record</a>
+      </div>
+
+      <div class="card">
+        <h3>Baby's Next Vaccine</h3>
+        @if (Model.LinkedBaby == null)
+        {
+          <div class="empty-state" style="padding:14px;">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="22" fill="#CFE3D4"/><circle cx="24" cy="20" r="6" fill="#1F5F5B"/><path d="M14 34c1.5-5 5.2-7 10-7s8.5 2 10 7" stroke="#1F5F5B" stroke-width="2.5" stroke-linecap="round"/></svg>
+            <p>No newborn registered yet. Once your baby arrives, all 7 UIP vaccines will appear here automatically.</p>
+          </div>
+        }
+        else if (Model.NextBabyVaccine == null)
+        {
+          <p><span class="pill low">All 7 UIP vaccines completed</span> for <strong>@Model.LinkedBaby.Name</strong>!</p>
+          <a class="btn ghost small" style="margin-left:0;" asp-controller="Newborns" asp-action="Details" asp-route-id="@Model.LinkedBaby.Id">View Vaccine Card</a>
+        }
+        else
+        {
+          <div class="list-row">
+            <div>
+              <strong>@Model.NextBabyVaccine.Name</strong>
+              <small>@Model.LinkedBaby.Name &bull; Due @Model.NextBabyVaccine.DueDate.ToString("dd MMM yyyy")</small>
+            </div>
+            <span class="pill @(Model.NextBabyVaccine.Status == "Overdue" ? "high" : "medium")">@Model.NextBabyVaccine.Status</span>
+          </div>
+          <a class="btn ghost small" style="margin-left:0;margin-top:12px;" asp-controller="Newborns" asp-action="Details" asp-route-id="@Model.LinkedBaby.Id">View Full Vaccine Schedule</a>
+        }
+      </div>
+    </div>
+  }
+}
+else if (Model.Role == "HealthWorker")
+{
+  <div class="dash-header">
+    <div>
+      <h2>Field Worker Dashboard</h2>
+      <p>Assigned villages:
+        @foreach (var v in Model.AssignedVillages)
+        {
+          <span class="pill low" style="margin-right:4px;">@v</span>
+        }
+      </p>
+    </div>
+    <div class="quick-actions">
+      <a class="btn" asp-controller="Mothers" asp-action="Create">+ Register Mother</a>
+      <a class="btn teal" asp-controller="Mothers" asp-action="Index">View Mothers</a>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-label">Mothers in Your Villages</span>
+      <span class="kpi-val">@Model.TotalMothers</span>
+      <span class="kpi-sub">Active antenatal caseload</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">High-Risk Mothers</span>
+      <span class="kpi-val accent">@Model.HighRiskCount</span>
+      <span class="kpi-sub">Require priority follow-up</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Newborns Tracked</span>
+      <span class="kpi-val">@Model.NewbornsCount</span>
+      <span class="kpi-sub">On UIP vaccine schedule</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Overdue Items</span>
+      <span class="kpi-val accent">@Model.OverdueAncCount</span>
+      <span class="kpi-sub">ANC visits &amp; vaccines</span>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>Today's Tasks</h3>
+      @if (!Model.WorkerTasks.Any())
+      {
+        <div class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="22" fill="#CFE3D4"/><path d="M16 24l5 5 11-11" stroke="#1F5F5B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <p>No upcoming tasks due today in your villages.</p>
+        </div>
+      }
+      else
+      {
+        <div class="list-stack">
+          @foreach (var t in Model.WorkerTasks)
+          {
+            <div class="list-row">
+              <div>
+                <a href="@t.LinkUrl"><strong>@t.Title</strong></a>
+                <small>@t.Subtitle</small>
+              </div>
+              <span class="pill medium">@t.Status</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="card">
+      <h3>Overdue Follow-Ups</h3>
+      @if (!Model.WorkerOverdue.Any())
+      {
+        <div class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="22" fill="#CFE3D4"/><path d="M16 24l5 5 11-11" stroke="#1F5F5B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <p>Great job! Nothing is overdue in your assigned villages.</p>
+        </div>
+      }
+      else
+      {
+        <div class="list-stack">
+          @foreach (var o in Model.WorkerOverdue)
+          {
+            <div class="list-row">
+              <div>
+                <a href="@o.LinkUrl"><strong>@o.Title</strong></a>
+                <small>@o.Subtitle</small>
+              </div>
+              <span class="pill high">Overdue</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+}
+else
+{
+  <div class="dash-header">
+    <div>
+      <h2>Clinic Dashboard</h2>
+      <p>Live maternal, newborn, and immunisation overview across Punjab villages.</p>
+    </div>
+    <div class="quick-actions">
+      <a class="btn" asp-controller="Mothers" asp-action="Create">+ Register Mother</a>
+      <a class="btn teal" asp-controller="Mothers" asp-action="Index">Add Visit</a>
+      <a class="btn ghost" asp-controller="Mothers" asp-action="Index">Register Baby</a>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-label">Total Mothers</span>
+      <span class="kpi-val">@Model.TotalMothers</span>
+      <span class="kpi-sub">Registered across @Model.VillageLabels.Count villages</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">High-Risk Mothers</span>
+      <span class="kpi-val accent">@Model.HighRiskCount</span>
+      <span class="kpi-sub">Need immediate clinical attention</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Upcoming Deliveries</span>
+      <span class="kpi-val">@Model.UpcomingDeliveriesMonth</span>
+      <span class="kpi-sub">Expected within 30 days</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Overdue ANC Visits</span>
+      <span class="kpi-val accent">@Model.OverdueAncCount</span>
+      <span class="kpi-sub">&gt;45 days since last check-up</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Newborns</span>
+      <span class="kpi-val">@Model.NewbornsCount</span>
+      <span class="kpi-sub">Enrolled in UIP schedule</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Vaccination Coverage</span>
+      <span class="kpi-val">@Model.VaccinationCoveragePercent%</span>
+      <span class="kpi-sub">Of scheduled doses given</span>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="card">
+      <h3>Risk Distribution</h3>
+      <div class="chart-wrap">
+        <div class="skeleton" data-chart-skeleton></div>
+        <canvas id="riskChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Monthly Registrations</h3>
+      <div class="chart-wrap">
+        <div class="skeleton" data-chart-skeleton></div>
+        <canvas id="regChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Vaccination Coverage by Village</h3>
+      <div class="chart-wrap">
+        <div class="skeleton" data-chart-skeleton></div>
+        <canvas id="villageChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="panels-grid">
+    <div class="card">
+      <h3>High-Risk Alerts</h3>
+      @if (!Model.HighRiskAlerts.Any())
+      {
+        <div class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="22" fill="#CFE3D4"/><path d="M16 24l5 5 11-11" stroke="#1F5F5B" stroke-width="3" stroke-linecap="round"/></svg>
+          <p>No high-risk pregnancies flagged right now.</p>
+        </div>
+      }
+      else
+      {
+        <div class="list-stack">
+          @foreach (var alert in Model.HighRiskAlerts)
+          {
+            <div class="list-row">
+              <div>
+                <a asp-controller="Mothers" asp-action="Details" asp-route-id="@alert.MotherId"><strong>@alert.MotherName</strong></a>
+                <small>@alert.Village &bull; Week @alert.Week</small><br />
+                <small style="color:var(--rose-ink);">@string.Join(" • ", alert.Reasons.Take(2))</small>
+              </div>
+              <span class="pill high">High</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="card">
+      <h3>Today's Follow-Ups</h3>
+      @if (!Model.TodaysFollowUps.Any())
+      {
+        <div class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="22" fill="#FBE8A6"/><path d="M24 14v10l6 4" stroke="#6B4F08" stroke-width="3" stroke-linecap="round"/></svg>
+          <p>No follow-ups scheduled for today.</p>
+        </div>
+      }
+      else
+      {
+        <div class="list-stack">
+          @foreach (var f in Model.TodaysFollowUps.Take(6))
+          {
+            <div class="list-row">
+              <div>
+                <a href="@f.LinkUrl"><strong>@f.Title</strong></a>
+                <small>@f.Subtitle</small>
+              </div>
+              <span class="pill @(f.Status == "Overdue" ? "high" : "medium")">@f.Status</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="card">
+      <h3>Recent Activity</h3>
+      <div class="list-stack">
+        @foreach (var act in Model.RecentActivity)
+        {
+          <div class="list-row">
+            <div>
+              <strong>@act.Kind</strong>
+              <small>@act.Text</small>
+            </div>
+            <small class="muted" style="white-space:nowrap;">@act.Date.ToString("dd MMM")</small>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+@section Scripts {
+  @if (Model.Role != "Mother" && Model.Role != "HealthWorker")
+  {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const riskData = [@Model.LowRiskCount, @Model.MediumRiskCount, @Model.HighRiskCount];
+        const monthLabels = @Html.Raw(JsonSerializer.Serialize(Model.MonthLabels));
+        const monthCounts = @Html.Raw(JsonSerializer.Serialize(Model.MonthRegistrationCounts));
+        const villageLabels = @Html.Raw(JsonSerializer.Serialize(Model.VillageLabels));
+        const villageCoverage = @Html.Raw(JsonSerializer.Serialize(Model.VillageCoveragePercents));
+
+        // Brief skeleton shimmer fade-out before revealing charts
+        setTimeout(() => {
+          new Chart(document.getElementById('riskChart'), {
+            type: 'doughnut',
+            data: {
+              labels: ['Low Risk', 'Medium Risk', 'High Risk'],
+              datasets: [{
+                data: riskData,
+                backgroundColor: ['#CFE3D4', '#FBE8A6', '#F2785C'],
+                borderColor: '#FFFFFF',
+                borderWidth: 3
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              cutout: '62%',
+              plugins: { legend: { position: 'bottom' } }
+            }
+          });
+
+          new Chart(document.getElementById('regChart'), {
+            type: 'bar',
+            data: {
+              labels: monthLabels,
+              datasets: [{
+                label: 'Mothers Registered',
+                data: monthCounts,
+                backgroundColor: '#1F5F5B',
+                borderRadius: 8
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            }
+          });
+
+          new Chart(document.getElementById('villageChart'), {
+            type: 'bar',
+            data: {
+              labels: villageLabels,
+              datasets: [{
+                label: 'Coverage %',
+                data: villageCoverage,
+                backgroundColor: '#F2785C',
+                borderRadius: 8
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: { y: { beginAtZero: true, max: 100, ticks: { callback: (v) => v + '%' } } }
+            }
+          });
+
+          document.querySelectorAll('[data-chart-skeleton]').forEach((el) => el.classList.add('hidden'));
+        }, 250);
+      });
+    </script>
+  }
+}

@@ -1,0 +1,81 @@
+@* Contact.cshtml - public contact form saved to the ContactMessages database table. *@
+@model ContactViewModel
+@{
+    Layout = "_PublicLayout";
+    ViewData["Title"] = "Contact Us";
+}
+
+<section class="page-hero">
+  <div class="container">
+    <span class="chip chip-sage">Get in Touch</span>
+    <h1>Contact the MaatriCare team</h1>
+    <p>Have a question about clinic onboarding, village outreach, or maternal follow-up support? Send us a message below.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container grid-2" style="align-items:start;">
+    <div class="pub-card reveal">
+      <span class="chip chip-butter">Clinic Support Desk</span>
+      <h3>Phagwara Primary Health Unit</h3>
+      <p style="margin-bottom:18px;">Reach our maternal &amp; child health coordination desk during clinic hours or leave a message any time.</p>
+      <ul style="list-style:none;padding:0;margin:0 0 24px;display:flex;flex-direction:column;gap:10px;color:var(--muted);">
+        <li><strong style="color:var(--teal);">Address:</strong> Civil Hospital Road, Phagwara, Punjab 144401</li>
+        <li><strong style="color:var(--teal);">Phone:</strong> +91 1824-260-108</li>
+        <li><strong style="color:var(--teal);">Email:</strong> care@maatricare.org</li>
+        <li><strong style="color:var(--teal);">Hours:</strong> Mon – Sat, 8:30 AM – 4:30 PM</li>
+      </ul>
+      <svg viewBox="0 0 360 150" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Clinic support desk illustration">
+        <rect width="360" height="150" rx="16" fill="#FBF6F0"/>
+        <circle cx="70" cy="75" r="34" fill="#CFE3D4"/>
+        <path d="M58 75h24M70 63v24" stroke="#1F5F5B" stroke-width="4" stroke-linecap="round"/>
+        <rect x="124" y="46" width="190" height="16" rx="8" fill="#1F5F5B"/>
+        <rect x="124" y="74" width="140" height="12" rx="6" fill="#9EB3B1"/>
+        <rect x="124" y="96" width="96" height="22" rx="11" fill="#F2785C"/>
+      </svg>
+    </div>
+
+    <div class="pub-card reveal">
+      <h3>Send a message</h3>
+      @if (TempData["ContactSuccess"] != null)
+      {
+        <div class="alert-success" role="status">@TempData["ContactSuccess"]</div>
+      }
+
+      <form asp-controller="Public" asp-action="Contact" method="post" novalidate>
+        @Html.AntiForgeryToken()
+        <div class="form-group">
+          <label asp-for="FullName">Full Name</label>
+          <input asp-for="FullName" class="form-control" placeholder="e.g. Simran Kaur" />
+          <span asp-validation-for="FullName" class="field-err"></span>
+        </div>
+
+        <div class="form-group">
+          <label asp-for="Email">Email Address</label>
+          <input asp-for="Email" type="email" class="form-control" placeholder="e.g. simran@example.com" />
+          <span asp-validation-for="Email" class="field-err"></span>
+        </div>
+
+        <div class="form-group">
+          <label asp-for="Phone">Phone Number (optional)</label>
+          <input asp-for="Phone" class="form-control" placeholder="e.g. 9876500001" />
+          <span asp-validation-for="Phone" class="field-err"></span>
+        </div>
+
+        <div class="form-group">
+          <label asp-for="Subject">Subject</label>
+          <input asp-for="Subject" class="form-control" placeholder="e.g. Clinic onboarding inquiry" />
+          <span asp-validation-for="Subject" class="field-err"></span>
+        </div>
+
+        <div class="form-group">
+          <label asp-for="Message">Message</label>
+          <textarea asp-for="Message" class="form-control" placeholder="Write your question or feedback here..."></textarea>
+          <span asp-validation-for="Message" class="field-err"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%;">Send Message</button>
+      </form>
+    </div>
+  </div>
+</section>

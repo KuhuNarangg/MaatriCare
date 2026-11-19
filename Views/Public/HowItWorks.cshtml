@@ -1,0 +1,48 @@
+@* HowItWorks.cshtml - step-by-step walkthrough of how clinic teams use MaatriCare. *@
+@{
+    Layout = "_PublicLayout";
+    ViewData["Title"] = "How It Works";
+}
+
+<section class="page-hero">
+  <div class="container">
+    <span class="chip chip-sage">Workflow</span>
+    <h1>From first registration to protected milestones</h1>
+    <p>See how health workers, doctors, and clinic admins use MaatriCare in four simple steps.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container grid-2">
+    <div class="pub-card reveal">
+      <div class="step-num">1</div>
+      <h3>Register the Mother</h3>
+      <p>During the first clinic or home visit, enter the mother's basic details, village, phone number, blood group, C-section history, and Last Menstrual Period (LMP). MaatriCare immediately computes pregnancy week and Expected Delivery Date (EDD).</p>
+    </div>
+    <div class="pub-card reveal">
+      <div class="step-num">2</div>
+      <h3>Record ANC Visits &amp; Review Risk</h3>
+      <p>At each antenatal check-up, log blood pressure, hemoglobin (Hb), blood sugar, and clinical notes. RiskService recalculates the mother's risk level instantly and displays every contributing factor in the "Why this risk?" panel.</p>
+    </div>
+    <div class="pub-card reveal">
+      <div class="step-num">3</div>
+      <h3>Register the Newborn</h3>
+      <p>Once the baby arrives, click "+ Register baby" from the mother's profile. Entering the date of birth automatically builds the 7-dose India UIP immunization schedule with exact due dates.</p>
+    </div>
+    <div class="pub-card reveal">
+      <div class="step-num">4</div>
+      <h3>Follow Up &amp; Mark Vaccines Given</h3>
+      <p>Each day, check the Dashboard for high-risk mothers, deliveries due within 30 days, and overdue vaccines. When a child receives a dose, mark it given in one click to update clinic coverage live.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section section-soft">
+  <div class="container">
+    <div class="cta-banner reveal">
+      <h2>Try the live clinic workflow</h2>
+      <p>Use the demo staff credentials on the login page to explore mothers, risk detection, and vaccine tracking firsthand.</p>
+      <a class="btn btn-primary" asp-controller="Account" asp-action="Login">Go to Staff Login</a>
+    </div>
+  </div>
+</section>

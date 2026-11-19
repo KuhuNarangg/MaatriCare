@@ -1,11 +1,86 @@
-<div class="login card">
-  <h1>Maatri<span>Care</span></h1>
-  <p class="muted">Maternal &amp; Newborn Follow-Up Platform</p>
-  @if (ViewBag.Error != null) { <p class="err">@ViewBag.Error</p> }
-  <form method="post">
-    <label>Username</label><input name="username" />
-    <label>Password</label><input name="password" type="password" />
-    <button class="btn">Sign in</button>
-  </form>
-  <p class="muted small">Demo: admin / doctor / worker &mdash; Pass@123</p>
-</div>
+@* Login.cshtml - polished split-screen login page with role-based redirect after sign-in. *@
+@model LoginViewModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Staff Login — MaatriCare</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="~/css/public.css" />
+</head>
+<body>
+  <div class="login-split">
+    <section class="login-brand-panel">
+      <div>
+        <a class="brand" asp-controller="Public" asp-action="Index" style="color:#fff;">
+          <svg width="32" height="32" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+            <rect width="36" height="36" rx="10" fill="#164643"/>
+            <path d="M18 26.5C18 26.5 9.5 21.3 9.5 14.8C9.5 11.9 11.8 9.8 14.4 9.8C16.1 9.8 17.4 10.7 18 11.8C18.6 10.7 19.9 9.8 21.6 9.8C24.2 9.8 26.5 11.9 26.5 14.8C26.5 21.3 18 26.5 18 26.5Z" fill="#F2785C"/>
+            <circle cx="18" cy="17.5" r="3" fill="#FBF6F0"/>
+          </svg>
+          Maatri<span>Care</span>
+        </a>
+      </div>
+
+      <div style="margin:36px 0;">
+        <span class="chip chip-butter">Clinical Follow-Up Portal</span>
+        <h1>Caring for every mother and newborn, step by step.</h1>
+        <p>Sign in to manage antenatal visits, monitor explainable risk alerts, and keep India UIP newborn vaccinations on schedule.</p>
+        <div class="login-photo-wrap">
+          <img src="~/images/baby-feet.jpg" alt="Mother gently holding newborn feet" class="login-photo" />
+        </div>
+      </div>
+
+      <div style="font-size:0.88rem;color:#A9C9C4;">
+        &larr; <a asp-controller="Public" asp-action="Index" style="color:#FBE8A6;font-weight:600;">Back to MaatriCare public website</a>
+      </div>
+    </section>
+
+    <section class="login-form-panel">
+      <div class="login-box">
+        <h2 style="margin-bottom:6px;">Welcome back</h2>
+        <p style="color:var(--muted);margin:0 0 24px;font-size:0.95rem;">Sign in with your MaatriCare staff account.</p>
+
+        @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+        {
+          <div class="alert-error" role="alert">
+            @foreach (var err in ViewData.ModelState[string.Empty].Errors)
+            {
+              <div>@err.ErrorMessage</div>
+            }
+          </div>
+        }
+
+        <form asp-controller="Account" asp-action="Login" method="post" novalidate>
+          @Html.AntiForgeryToken()
+          <input type="hidden" asp-for="ReturnUrl" />
+
+          <div class="form-group">
+            <label asp-for="Username">Username</label>
+            <input asp-for="Username" class="form-control" autocomplete="username" placeholder="Enter your username" />
+            <span asp-validation-for="Username" class="field-err"></span>
+          </div>
+
+          <div class="form-group">
+            <label asp-for="Password">Password</label>
+            <input asp-for="Password" type="password" class="form-control" autocomplete="current-password" placeholder="Enter your password" />
+            <span asp-validation-for="Password" class="field-err"></span>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width:100%;margin-top:6px;">Sign in</button>
+        </form>
+
+        <div class="demo-box">
+          <strong>Demo accounts:</strong><br />
+          Admin: <code>admin</code> &bull; Doctor: <code>doctor</code> &bull; Health Worker: <code>worker</code> &bull; Mother: <code>mother</code><br />
+          Password for all: <code>Pass@123</code>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

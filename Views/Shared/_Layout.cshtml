@@ -1,23 +1,167 @@
+@* _Layout.cshtml - authenticated app shell with collapsible sidebar, topbar search, notifications and profile menu. *@
+@using System.Security.Claims
+@inject DashboardService DashSvc
+@{
+    var isAuth = User.Identity?.IsAuthenticated == true;
+    var username = User.Identity?.Name ?? "";
+    var role = User.FindFirstValue(ClaimTypes.Role) ?? "";
+    var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var act = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var notifications = (isAuth && role != "Mother") ? await DashSvc.GetTopbarNotificationsAsync() : new List<FollowUpItem>();
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MaatriCare</title>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <title>@(ViewData["Title"] != null ? ViewData["Title"] + " — MaatriCare" : "MaatriCare Portal")</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="~/css/site.css" />
 </head>
 <body>
-@if (User.Identity.IsAuthenticated)
+@if (isAuth)
 {
-  <aside class="side">
-    <h1>Maatri<span>Care</span></h1>
-    <a asp-controller="Home" asp-action="Index">Dashboard</a>
-    <a asp-controller="Mothers" asp-action="Index">Mothers</a>
-    <a asp-controller="Mothers" asp-action="Create">+ Register mother</a>
-    <div class="who">@User.Identity.Name<br /><a asp-controller="Account" asp-action="Logout">Log out</a></div>
-  </aside>
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <div class="app-shell">
+    <aside class="sidebar" id="appSidebar">
+      <div class="sidebar-top">
+        <a class="side-brand" asp-controller="Home" asp-action="Index">
+          <svg width="28" height="28" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+            <rect width="36" height="36" rx="10" fill="#164643"/>
+            <path d="M18 26.5C18 26.5 9.5 21.3 9.5 14.8C9.5 11.9 11.8 9.8 14.4 9.8C16.1 9.8 17.4 10.7 18 11.8C18.6 10.7 19.9 9.8 21.6 9.8C24.2 9.8 26.5 11.9 26.5 14.8C26.5 21.3 18 26.5 18 26.5Z" fill="#F2785C"/>
+            <circle cx="18" cy="17.5" r="3" fill="#FBF6F0"/>
+          </svg>
+          <span class="side-brand-text">Maatri<span>Care</span></span>
+        </a>
+        <button type="button" class="collapse-btn" id="collapseSidebarBtn" title="Toggle sidebar" aria-label="Collapse sidebar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+      </div>
+
+      <div class="nav-section">Overview</div>
+      <a class="side-link @(ctrl == "Home" ? "active" : "")" asp-controller="Home" asp-action="Index" title="Dashboard">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>
+        <span class="side-label">Dashboard</span>
+      </a>
+
+      @if (role != "Mother")
+      {
+        <div class="nav-section">Clinical Care</div>
+        <a class="side-link @(ctrl == "Mothers" && act != "Create" ? "active" : "")" asp-controller="Mothers" asp-action="Index" title="Mothers">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span class="side-label">Mothers</span>
+        </a>
+        <a class="side-link @(ctrl == "Mothers" && act == "Create" ? "active" : "")" asp-controller="Mothers" asp-action="Create" title="Register Mother">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          <span class="side-label">Register Mother</span>
+        </a>
+        <a class="side-link @(ctrl == "Appointments" ? "active" : "")" asp-controller="Appointments" asp-action="Index" title="Appointments">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          <span class="side-label">Appointments</span>
+        </a>
+        <a class="side-link @(ctrl == "Newborns" && act == "Vaccines" ? "active" : "")" asp-controller="Newborns" asp-action="Vaccines" title="Vaccination Tracker">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 2 4 4M17 7l3-3M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5M9 11l4 4M5 19l-3 3"/></svg>
+          <span class="side-label">Vaccination Tracker</span>
+        </a>
+      }
+
+      @if (role == "Admin")
+      {
+        <div class="nav-section">Administration</div>
+        <a class="side-link @(ctrl == "Users" ? "active" : "")" asp-controller="Users" asp-action="Index" title="Users & Roles">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span class="side-label">Users &amp; Roles</span>
+        </a>
+      }
+
+      <div class="nav-section">Account</div>
+      <a class="side-link @(ctrl == "Profile" ? "active" : "")" asp-controller="Profile" asp-action="Index" title="My Profile">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span class="side-label">My Profile</span>
+      </a>
+      <a class="side-link" asp-controller="Public" asp-action="Index" title="Public Site">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <span class="side-label">Public Site</span>
+      </a>
+
+      <div class="side-footer">
+        <span class="side-label">Signed in as <strong>@username</strong><br />Role: @role</span>
+      </div>
+    </aside>
+
+    <div class="app-main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button type="button" class="mobile-menu-btn" id="mobileSidebarBtn" aria-label="Open menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+          </button>
+
+          @if (role != "Mother")
+          {
+            <form class="global-search" method="get" asp-controller="Mothers" asp-action="Index">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#617371" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input name="q" placeholder="Search mothers or village..." aria-label="Global search" />
+            </form>
+          }
+          else
+          {
+            <span style="font-weight:600;color:var(--teal);">My Maternal Care Portal</span>
+          }
+        </div>
+
+        <div class="topbar-right">
+          <div class="dropdown">
+            <button type="button" class="icon-btn" data-dropdown-trigger aria-label="Notifications">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              @if (notifications.Count > 0)
+              {
+                <span class="bell-badge">@notifications.Count</span>
+              }
+            </button>
+            <div class="dropdown-menu">
+              <div class="dropdown-title">Clinical Alerts (@notifications.Count)</div>
+              @if (notifications.Count == 0)
+              {
+                <p class="muted small" style="padding:8px;">All clear! No urgent alerts.</p>
+              }
+              @foreach (var n in notifications)
+              {
+                <a class="notif-item" href="@n.LinkUrl">
+                  <strong>@n.Title</strong>
+                  <span>@n.Subtitle</span>
+                </a>
+              }
+            </div>
+          </div>
+
+          <div class="dropdown">
+            <button type="button" class="profile-btn" data-dropdown-trigger>
+              <span class="avatar">@(username.Length > 0 ? username[0].ToString().ToUpper() : "U")</span>
+              <span class="profile-name">@username</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="dropdown-menu profile-menu">
+              <div class="dropdown-title">@username <span class="pill low" style="margin-left:4px;">@role</span></div>
+              <a asp-controller="Home" asp-action="Index">Dashboard</a>
+              <a asp-controller="Profile" asp-action="Index">My Profile</a>
+              <a asp-controller="Public" asp-action="Index">View Public Website</a>
+              <a asp-controller="Account" asp-action="Logout" style="color:var(--rose-ink);font-weight:600;">Log out</a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="app-content">
+        @RenderBody()
+      </main>
+    </div>
+  </div>
 }
-<main class="@(User.Identity.IsAuthenticated ? "with-side" : "")">@RenderBody()</main>
+else
+{
+  <main class="app-content">@RenderBody()</main>
+}
+<script src="~/js/app.js"></script>
+@await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

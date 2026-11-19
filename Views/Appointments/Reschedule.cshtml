@@ -1,0 +1,33 @@
+@* Reschedule.cshtml - reschedule an existing appointment to a new date. *@
+@model AppointmentFormViewModel
+@{
+    ViewData["Title"] = "Reschedule Appointment";
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Reschedule Appointment</h2>
+    <p>Mother: <strong>@ViewBag.MotherName</strong></p>
+  </div>
+  <a class="btn ghost" asp-action="Index">&larr; Back to Appointments</a>
+</div>
+
+<form method="post" class="card form" style="max-width:540px;" novalidate>
+  @Html.AntiForgeryToken()
+  <input type="hidden" asp-for="Id" />
+  <input type="hidden" asp-for="MotherId" />
+  <div asp-validation-summary="All" class="err"></div>
+
+  <label asp-for="ScheduledDate">New Appointment Date</label>
+  <input asp-for="ScheduledDate" type="date" />
+
+  <label asp-for="Purpose">Purpose</label>
+  <input asp-for="Purpose" />
+
+  <label asp-for="Notes">Notes</label>
+  <input asp-for="Notes" />
+
+  <div style="margin-top:20px;">
+    <button type="submit" class="btn teal">Save New Date</button>
+  </div>
+</form>
