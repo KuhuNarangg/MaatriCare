@@ -65,6 +65,18 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 2 4 4M17 7l3-3M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5M9 11l4 4M5 19l-3 3"/></svg>
           <span class="side-label">Vaccination Tracker</span>
         </a>
+        <a class="side-link @(ctrl == "FollowUps" ? "active" : "")" asp-controller="FollowUps" asp-action="Index" title="Follow-Ups">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.58 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          <span class="side-label">Follow-Ups</span>
+        </a>
+        <a class="side-link @(ctrl == "Referrals" ? "active" : "")" asp-controller="Referrals" asp-action="Index" title="Hospital Referrals">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6v12M6 12h12"/><rect x="3" y="3" width="18" height="18" rx="4"/></svg>
+          <span class="side-label">Referrals</span>
+        </a>
+        <a class="side-link @(ctrl == "Notifications" ? "active" : "")" asp-controller="Notifications" asp-action="Index" title="Notifications">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="side-label">Notifications</span>
+        </a>
       }
 
       @if (role == "Admin")
@@ -73,6 +85,10 @@
         <a class="side-link @(ctrl == "Users" ? "active" : "")" asp-controller="Users" asp-action="Index" title="Users & Roles">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           <span class="side-label">Users &amp; Roles</span>
+        </a>
+        <a class="side-link @(ctrl == "Tips" ? "active" : "")" asp-controller="Tips" asp-action="Index" title="Health Tips">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          <span class="side-label">Health Tips</span>
         </a>
       }
 
@@ -131,6 +147,12 @@
                 <a class="notif-item" href="@n.LinkUrl">
                   <strong>@n.Title</strong>
                   <span>@n.Subtitle</span>
+                </a>
+              }
+              @if (role != "Mother")
+              {
+                <a class="notif-item" asp-controller="Notifications" asp-action="Index" style="text-align:center;color:var(--coral);font-weight:600;border-top:1px solid var(--border);margin-top:6px;">
+                  Open Notification Centre &rarr;
                 </a>
               }
             </div>
