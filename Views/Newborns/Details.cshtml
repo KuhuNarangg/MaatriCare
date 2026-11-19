@@ -1,17 +1,237 @@
+@* Details.cshtml - Newborn profile with LBW/Preterm flags, Baby Growth Path stepper, WHO growth chart, and vaccines. *@
+@using System.Text.Json
 @model Newborn
-<h2>@Model.Name</h2>
-<p class="muted">Mother: <a asp-controller="Mothers" asp-action="Details" asp-route-id="@Model.MotherId">@Model.Mother.Name</a> &bull; Born @Model.Dob.ToString("dd MMM yyyy") &bull; @Model.Gender &bull; @Model.BirthWeight kg</p>
-<div class="card">
-  <h3>Vaccination schedule</h3>
-  <table>
-    <tr><th>Vaccine</th><th>Due</th><th>Status</th><th></th></tr>
-    @foreach (var v in Model.Vaccines.OrderBy(v => v.DueDate))
+@{
+    ViewData["Title"] = Model.Name;
+    var isStaff = !User.IsInRole("Mother");
+    var orderedVax = Model.Vaccines.OrderBy(v => v.DueDate).ToList();
+    var orderedGrowth = Model.GrowthRecords.OrderBy(g => g.RecordedDate).ToList();
+
+    var milestones = new (string Label, int DayOffset)[]
     {
-      <tr>
-        <td>@v.Name</td><td>@v.DueDate.ToString("dd MMM yyyy")</td>
-        <td><span class="pill @(v.Status == "Given" ? "low" : v.Status == "Overdue" ? "high" : "medium")">@v.Status</span></td>
-        <td>@if (v.Status != "Given" && !User.IsInRole("Mother")) { <form asp-action="Give" asp-route-id="@v.Id" method="post"><button class="btn small">Mark given</button></form> }</td>
-      </tr>
+        ("At Birth", 0), ("6 Weeks", 42), ("10 Weeks", 70), ("14 Weeks", 98), ("9 Months", 270)
+    };
+}
+
+<div class="dash-header">
+  <div>
+    <h2>
+      @Model.Name
+      @if (Model.IsLowBirthWeight) { <span class="pill high" style="animation:none;">Low Birth Weight (&lt;2.5 kg)</span> }
+      @if (Model.IsPreterm) { <span class="pill medium">Preterm (&lt;37 wks)</span> }
+    </h2>
+    <p>
+      Mother: <a asp-controller="Mothers" asp-action="Details" asp-route-id="@Model.MotherId"><strong>@Model.Mother?.Name</strong></a>
+      &bull; Born @Model.Dob.ToString("dd MMM yyyy")
+      &bull; @Model.Gender
+      &bull; Birth Weight @Model.BirthWeight kg
+      @(Model.ApgarScore.HasValue ? $"• APGAR {Model.ApgarScore}/10" : "")
+      @(Model.GestationalAgeWeeks.HasValue ? $"• {Model.GestationalAgeWeeks} wks gestation" : "")
+    </p>
+  </div>
+  @if (isStaff)
+  {
+    <a class="btn ghost" asp-action="Vaccines">All Vaccines Tracker</a>
+  }
+</div>
+
+@if (TempData["Success"] != null)
+{
+  <div class="card" style="background:var(--sage);color:var(--sage-ink);border-color:transparent;padding:12px 18px;">
+    @TempData["Success"]
+  </div>
+}
+@if (TempData["Error"] != null)
+{
+  <div class="card" style="background:var(--rose);color:var(--rose-ink);border-color:transparent;padding:12px 18px;">
+    @TempData["Error"]
+  </div>
+}
+
+@if (Model.Delivery != null)
+{
+  <div class="card" style="padding:14px 20px;">
+    <strong>Linked Delivery Record:</strong>
+    @Model.Delivery.DeliveryType at @Model.Delivery.Place on @Model.Delivery.DeliveryDate.ToString("dd MMM yyyy")
+    &bull; Outcome: <span class="pill low">@Model.Delivery.Outcome</span>
+    @if (!string.IsNullOrWhiteSpace(Model.Delivery.Complications) && Model.Delivery.Complications != "None")
+    {
+      <span>&bull; Complications: <strong>@Model.Delivery.Complications</strong></span>
     }
+  </div>
+}
+
+<div class="card">
+  <h3>Baby Growth Path &mdash; UIP Vaccination Milestones</h3>
+  <div class="stepper">
+    @for (int i = 0; i < milestones.Length; i++)
+    {
+      var ms = milestones[i];
+      var targetDate = Model.Dob.AddDays(ms.DayOffset).Date;
+      var group = orderedVax.Where(v => Math.Abs((v.DueDate.Date - targetDate).TotalDays) <= 3).ToList();
+      bool allGiven = group.Any() && group.All(v => v.GivenDate != null);
+      bool anyOverdue = group.Any(v => v.Status == "Overdue");
+      string dotClass = allGiven ? "done" : anyOverdue ? "overdue" : "pending";
+      string statusText = allGiven ? "Completed" : anyOverdue ? "Overdue" : "Upcoming";
+
+      <div class="step-node">
+        <div class="step-dot @dotClass">@(allGiven ? "✓" : (i + 1).ToString())</div>
+        <strong>@ms.Label</strong>
+        <div class="small muted">@targetDate.ToString("dd MMM yyyy")</div>
+        <div class="small" style="margin-top:4px;font-weight:600;">@statusText</div>
+      </div>
+    }
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h3>Weight-for-Age Growth Chart (WHO Reference Bands)</h3>
+    <div class="chart-wrap" style="height:260px;">
+      <canvas id="growthChart"></canvas>
+    </div>
+    <p class="small muted" style="margin:8px 0 0;">Plotted in months from birth against simplified WHO lower-normal (3rd pct), median (50th pct), and upper-normal (97th pct) bands.</p>
+  </div>
+
+  <div class="card">
+    <h3>Growth Measurements (@orderedGrowth.Count)</h3>
+    @if (isStaff)
+    {
+      <form asp-action="AddGrowth" method="post" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;background:var(--bg);padding:14px;border-radius:14px;">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="NewbornId" value="@Model.Id" />
+        <div>
+          <label class="small" style="display:block;margin-bottom:4px;">Date</label>
+          <input name="RecordedDate" type="date" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+        </div>
+        <div>
+          <label class="small" style="display:block;margin-bottom:4px;">Weight (kg)</label>
+          <input name="WeightKg" type="number" step="0.1" placeholder="e.g. 5.2" required />
+        </div>
+        <div>
+          <label class="small" style="display:block;margin-bottom:4px;">Height (cm)</label>
+          <input name="HeightCm" type="number" step="0.1" placeholder="e.g. 58.0" required />
+        </div>
+        <div>
+          <label class="small" style="display:block;margin-bottom:4px;">Notes</label>
+          <input name="Notes" placeholder="Optional note" />
+        </div>
+        <div style="grid-column:1 / -1;">
+          <button type="submit" class="btn teal small" style="margin-left:0;">+ Log Measurement</button>
+        </div>
+      </form>
+    }
+    @if (!orderedGrowth.Any())
+    {
+      <p class="muted">No growth measurements logged yet.</p>
+    }
+    else
+    {
+      <table>
+        <thead>
+          <tr><th>Date</th><th>Weight</th><th>Height</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          @foreach (var g in orderedGrowth.OrderByDescending(x => x.RecordedDate))
+          {
+            <tr>
+              <td>@g.RecordedDate.ToString("dd MMM yyyy")</td>
+              <td><strong>@g.WeightKg.ToString("0.0") kg</strong></td>
+              <td>@g.HeightCm.ToString("0.0") cm</td>
+              <td class="small muted">@g.Notes</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>
+
+<div class="card">
+  <h3>Vaccination Schedule (7 UIP Milestones)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Vaccine</th>
+        <th>Due Date</th>
+        <th>Given Date</th>
+        <th>Batch No.</th>
+        <th>Status</th>
+        @if (isStaff) { <th>Record Dose</th> }
+      </tr>
+    </thead>
+    <tbody>
+      @foreach (var v in orderedVax)
+      {
+        <tr>
+          <td><strong>@v.Name</strong></td>
+          <td>@v.DueDate.ToString("dd MMM yyyy")</td>
+          <td>@(v.GivenDate.HasValue ? v.GivenDate.Value.ToString("dd MMM yyyy") : "—")</td>
+          <td>@(string.IsNullOrWhiteSpace(v.BatchNumber) ? "—" : v.BatchNumber)</td>
+          <td><span class="pill @(v.Status == "Given" ? "low" : v.Status == "Overdue" ? "high" : "medium")" style="animation:none;">@v.Status</span></td>
+          @if (isStaff)
+          {
+            <td>
+              @if (v.Status != "Given")
+              {
+                <form asp-action="Give" asp-route-id="@v.Id" method="post" class="inline-give">
+                  @Html.AntiForgeryToken()
+                  <input type="date" name="givenDate" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                  <input type="text" name="batchNumber" placeholder="Batch #" />
+                  <button type="submit" class="btn small" style="margin-left:0;">Mark Given</button>
+                </form>
+              }
+            </td>
+          }
+        </tr>
+      }
+    </tbody>
   </table>
 </div>
+
+@section Scripts {
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const whoLower = [
+        { x: 0, y: 2.4 }, { x: 1, y: 3.2 }, { x: 2, y: 4.0 }, { x: 3, y: 4.6 },
+        { x: 6, y: 5.9 }, { x: 9, y: 6.8 }, { x: 12, y: 7.4 }
+      ];
+      const whoMedian = [
+        { x: 0, y: 3.3 }, { x: 1, y: 4.4 }, { x: 2, y: 5.4 }, { x: 3, y: 6.2 },
+        { x: 6, y: 7.7 }, { x: 9, y: 8.8 }, { x: 12, y: 9.5 }
+      ];
+      const whoUpper = [
+        { x: 0, y: 4.3 }, { x: 1, y: 5.6 }, { x: 2, y: 6.9 }, { x: 3, y: 7.9 },
+        { x: 6, y: 9.6 }, { x: 9, y: 10.9 }, { x: 12, y: 11.8 }
+      ];
+
+      const babyPoints = @Html.Raw(JsonSerializer.Serialize(
+        orderedGrowth.Select(g => new {
+          x = Math.Round(Math.Max(0, (g.RecordedDate - Model.Dob).TotalDays / 30.0), 1),
+          y = g.WeightKg
+        })
+      ));
+
+      new Chart(document.getElementById('growthChart'), {
+        type: 'line',
+        data: {
+          datasets: [
+            { label: 'WHO Upper Normal', data: whoUpper, borderColor: 'rgba(207, 227, 212, 0.9)', borderDash: [5, 5], pointRadius: 0, fill: false },
+            { label: 'WHO Median', data: whoMedian, borderColor: '#1F5F5B', borderDash: [4, 4], pointRadius: 0, fill: false },
+            { label: 'WHO Lower Normal', data: whoLower, borderColor: 'rgba(251, 232, 166, 0.95)', borderDash: [5, 5], pointRadius: 0, fill: false },
+            { label: '@Model.Name (kg)', data: babyPoints, borderColor: '#F2785C', backgroundColor: '#F2785C', borderWidth: 3, pointRadius: 5, tension: 0.25 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { type: 'linear', min: 0, max: 12, title: { display: true, text: 'Age (months)' } },
+            y: { beginAtZero: false, min: 1.5, max: 13, title: { display: true, text: 'Weight (kg)' } }
+          }
+        }
+      });
+    });
+  </script>
+}
