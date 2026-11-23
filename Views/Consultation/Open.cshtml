@@ -1,0 +1,342 @@
+@* Open.cshtml - unified Doctor/Nurse Consultation Portal with vitals, notes, prescription builder, referral, and role-based read-only enforcement. *@
+@model ConsultationViewModel
+@{
+    ViewData["Title"] = $"Consultation — {Model.Mother.Name}";
+    var m = Model.Mother;
+    var a = Model.Appointment;
+    var r = Model.Record;
+    string docDisabled = Model.CanEditDoctorSection ? null : "disabled";
+    string nurseDisabled = Model.CanEditNurseSection ? null : "disabled";
+    string vitalsDisabled = Model.CanEditVitals ? null : "disabled";
+}
+
+<div class="dash-header">
+  <div>
+    <h2>
+      @m.Name
+      <span class="pill @Model.RiskLevel.ToLower()">@Model.RiskLevel Risk (Score @Model.RiskScore)</span>
+      <span class="pill @(a.Status == "Attended" ? "low" : a.Status == "In Consultation" ? "chip-consult" : "medium")" style="animation:none;">@a.Status</span>
+    </h2>
+    <p>
+      Age @m.Age &bull; @m.Village &bull; Week @m.Week (EDD @m.Edd.ToString("dd MMM yyyy"))
+      &bull; Appointment: <strong>@a.ScheduledDate.ToString("dd MMM yyyy") at @a.StartTime</strong> (@a.Purpose) with @a.DoctorName
+    </p>
+  </div>
+  <div class="quick-actions">
+    @if (r.Id > 0)
+    {
+      <a class="btn ghost" asp-controller="Records" asp-action="Print" asp-route-id="@r.Id" target="_blank">Print Prescription</a>
+    }
+    <a class="btn ghost" asp-controller="Mothers" asp-action="Details" asp-route-id="@m.Id">Patient Profile</a>
+  </div>
+</div>
+
+@if (Model.IsReadOnly)
+{
+  <div class="card" style="background:var(--butter);color:var(--butter-ink);border-color:transparent;padding:12px 18px;">
+    <strong>Read-Only View:</strong> Receptionist accounts can view patient records, notes, and prescriptions, but cannot edit clinical data.
+  </div>
+}
+@if (TempData["Success"] != null)
+{
+  <div class="card" style="background:var(--sage);color:var(--sage-ink);border-color:transparent;padding:12px 18px;">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+  <div class="card" style="background:var(--rose);color:var(--rose-ink);border-color:transparent;padding:12px 18px;">@TempData["Error"]</div>
+}
+
+<div class="grid-2">
+  <div class="card">
+    <h3>Clinical Risk Summary</h3>
+    @if (Model.RiskReasons.Any())
+    {
+      <ul style="margin:6px 0;padding-left:18px;">
+        @foreach (var reason in Model.RiskReasons) { <li>@reason</li> }
+      </ul>
+    }
+    else
+    {
+      <p class="muted">No elevated clinical risk factors detected.</p>
+    }
+    <div class="action-box @(Model.RiskLevel == "High" ? "high-box" : "")">
+      <strong>Recommended Action:</strong> @Model.RecommendedAction
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Date-Wise Visit History (@Model.PreviousVisits.Count)</h3>
+    @if (!Model.PreviousVisits.Any())
+    {
+      <p class="muted">No previous consultation records for @m.Name.</p>
+    }
+    else
+    {
+      <div class="list-stack">
+        @foreach (var prev in Model.PreviousVisits)
+        {
+          <div class="list-row">
+            <div>
+              <a asp-controller="Records" asp-action="Details" asp-route-id="@prev.Id"><strong>@prev.VisitDate.ToString("dd MMM yyyy, hh:mm tt")</strong></a>
+              <small>@(string.IsNullOrWhiteSpace(prev.Diagnosis) ? "Consultation note" : prev.Diagnosis) &bull; @prev.Prescriptions.Count medicine(s)</small>
+            </div>
+            <a class="btn ghost small" style="margin-left:0;" asp-controller="Records" asp-action="Details" asp-route-id="@prev.Id">Open</a>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+<form asp-action="Save" method="post" id="consultationForm">
+  @Html.AntiForgeryToken()
+  <input type="hidden" name="AppointmentId" value="@a.Id" />
+  <input type="hidden" name="VisitRecordId" value="@r.Id" />
+  <input type="hidden" name="SubmitMode" id="submitModeInput" value="@(Model.CanEditDoctorSection ? "draft" : "nurse_save")" />
+
+  <div class="card">
+    <h3>Vitals</h3>
+    <div class="kpi-grid" style="margin-bottom:0;">
+      <div>
+        <label class="small">Systolic BP (mmHg)</label>
+        <input type="number" name="Systolic" value="@r.Systolic" placeholder="120" disabled="@vitalsDisabled" />
+      </div>
+      <div>
+        <label class="small">Diastolic BP (mmHg)</label>
+        <input type="number" name="Diastolic" value="@r.Diastolic" placeholder="80" disabled="@vitalsDisabled" />
+      </div>
+      <div>
+        <label class="small">Weight (kg)</label>
+        <input type="number" step="0.1" name="WeightKg" value="@r.WeightKg" placeholder="58.5" disabled="@vitalsDisabled" />
+      </div>
+      <div>
+        <label class="small">Hemoglobin — Hb (g/dL)</label>
+        <input type="number" step="0.1" name="Hb" value="@r.Hb" placeholder="11.5" disabled="@vitalsDisabled" />
+      </div>
+      <div>
+        <label class="small">Blood Sugar (mg/dL)</label>
+        <input type="number" name="BloodSugar" value="@r.BloodSugar" placeholder="95" disabled="@vitalsDisabled" />
+      </div>
+      <div>
+        <label class="small">Temperature (&deg;F)</label>
+        <input type="number" step="0.1" name="TemperatureF" value="@r.TemperatureF" placeholder="98.6" disabled="@vitalsDisabled" />
+      </div>
+      <div>
+        <label class="small">Pulse (bpm)</label>
+        <input type="number" name="PulseBpm" value="@r.PulseBpm" placeholder="78" disabled="@vitalsDisabled" />
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <h3 style="margin:0;">Nurse Section (Vitals, Nurse Notes, Medications Administered &amp; Vaccines)</h3>
+      @if (!string.IsNullOrWhiteSpace(r.NurseAuthorName))
+      {
+        <span class="small muted">Authored by <strong>@r.NurseAuthorName</strong> (@r.NurseAuthorRole) &bull; @r.NurseUpdatedAt?.ToString("dd MMM yyyy, hh:mm tt")</span>
+      }
+    </div>
+
+    <div class="grid-2" style="margin-top:12px;">
+      <div>
+        <label class="small">Nurse Notes</label>
+        <textarea name="NurseNotes" rows="3" style="width:100%;padding:10px;border:1px solid #e3d8cb;border-radius:10px;font:inherit;" disabled="@nurseDisabled" placeholder="Observations, counseling, vitals check notes...">@r.NurseNotes</textarea>
+      </div>
+      <div>
+        <label class="small">Medication Administered in Clinic</label>
+        <textarea name="MedicationAdministered" rows="3" style="width:100%;padding:10px;border:1px solid #e3d8cb;border-radius:10px;font:inherit;" disabled="@nurseDisabled" placeholder="e.g. TT-2 injection, IV Iron Sucrose, IFA pack issued">@r.MedicationAdministered</textarea>
+      </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(r.VaccinesGivenSummary))
+    {
+      <div style="margin-top:10px;padding:10px 14px;background:var(--sage);color:var(--sage-ink);border-radius:12px;font-size:0.9rem;">
+        <strong>Vaccines Given Today:</strong> @r.VaccinesGivenSummary
+      </div>
+    }
+
+    @if (Model.CanEditNurseSection)
+    {
+      <div style="margin-top:14px;padding:14px;background:var(--bg);border-radius:14px;">
+        <strong class="small" style="display:block;margin-bottom:8px;color:var(--teal);">Record Vaccine Given Today (optional)</strong>
+        <div class="grid-2" style="gap:10px;">
+          <div>
+            <label class="small">Pending Baby Vaccine (if applicable)</label>
+            <select name="VaccineIdGiven">
+              <option value="">-- Or type vaccine name below --</option>
+              @foreach (var v in Model.BabyPendingVaccines)
+              {
+                <option value="@v.Id">@v.Name (Due @v.DueDate.ToString("dd MMM"))</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="small">Vaccine Name (e.g. TT-1 / Td / BCG)</label>
+            <input type="text" name="VaccineNameGiven" placeholder="e.g. Td Booster" />
+          </div>
+          <div>
+            <label class="small">Date Given</label>
+            <input type="date" name="VaccineDateGiven" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+          </div>
+          <div>
+            <label class="small">Batch Number</label>
+            <input type="text" name="VaccineBatchGiven" placeholder="e.g. UIP-2026-B4" />
+          </div>
+        </div>
+      </div>
+
+      @if (!Model.CanEditDoctorSection)
+      {
+        <div style="margin-top:16px;">
+          <button type="submit" class="btn teal" onclick="document.getElementById('submitModeInput').value='nurse_save'">Save Vitals &amp; Nurse Notes</button>
+        </div>
+      }
+    }
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <h3 style="margin:0;">Doctor's Clinical Notes &amp; Assessment</h3>
+      @if (!string.IsNullOrWhiteSpace(r.DoctorAuthorName))
+      {
+        <span class="small muted">Authored by <strong>@r.DoctorAuthorName</strong> (@r.DoctorAuthorRole) &bull; @r.DoctorUpdatedAt?.ToString("dd MMM yyyy, hh:mm tt")</span>
+      }
+    </div>
+
+    <div class="grid-2" style="margin-top:12px;">
+      <div>
+        <label class="small">Symptoms / Chief Complaints</label>
+        <textarea name="Symptoms" rows="3" style="width:100%;padding:10px;border:1px solid #e3d8cb;border-radius:10px;font:inherit;" disabled="@docDisabled">@r.Symptoms</textarea>
+      </div>
+      <div>
+        <label class="small">Diagnosis</label>
+        <textarea name="Diagnosis" rows="3" style="width:100%;padding:10px;border:1px solid #e3d8cb;border-radius:10px;font:inherit;" disabled="@docDisabled">@r.Diagnosis</textarea>
+      </div>
+      <div>
+        <label class="small">Medical Notes</label>
+        <textarea name="MedicalNotes" rows="3" style="width:100%;padding:10px;border:1px solid #e3d8cb;border-radius:10px;font:inherit;" disabled="@docDisabled">@r.MedicalNotes</textarea>
+      </div>
+      <div>
+        <label class="small">Tests Advised</label>
+        <textarea name="TestsAdvised" rows="3" style="width:100%;padding:10px;border:1px solid #e3d8cb;border-radius:10px;font:inherit;" disabled="@docDisabled" placeholder="CBC, Urine R/M, OGTT, Ultrasound...">@r.TestsAdvised</textarea>
+      </div>
+      <div>
+        <label class="small">Advice &amp; Diet / Danger Sign Counseling</label>
+        <textarea name="Advice" rows="2" style="width:100%;padding:10px;border:1px solid #e3d8cb;border-radius:10px;font:inherit;" disabled="@docDisabled">@r.Advice</textarea>
+      </div>
+      <div>
+        <label class="small">Next Follow-Up Date</label>
+        <input type="date" name="NextFollowUpDate" value="@(r.NextFollowUpDate?.ToString("yyyy-MM-dd"))" disabled="@docDisabled" />
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+      <h3 style="margin:0;">Prescription Builder</h3>
+      @if (Model.CanEditDoctorSection)
+      {
+        <button type="button" class="btn ghost small" style="margin-left:0;" id="addRxRowBtn">+ Add Medication Row</button>
+      }
+    </div>
+
+    <table id="rxTable">
+      <thead>
+        <tr>
+          <th>Medicine Name</th>
+          <th>Dose</th>
+          <th>Frequency</th>
+          <th>Duration</th>
+          <th>Instructions</th>
+          @if (Model.CanEditDoctorSection) { <th></th> }
+        </tr>
+      </thead>
+      <tbody id="rxBody">
+        @if (r.Prescriptions.Any())
+        {
+          foreach (var rx in r.Prescriptions)
+          {
+            <tr>
+              <td><input name="RxMedicine" value="@rx.MedicineName" disabled="@docDisabled" /></td>
+              <td><input name="RxDose" value="@rx.Dose" disabled="@docDisabled" /></td>
+              <td><input name="RxFrequency" value="@rx.Frequency" disabled="@docDisabled" /></td>
+              <td><input name="RxDuration" value="@rx.Duration" disabled="@docDisabled" /></td>
+              <td><input name="RxInstructions" value="@rx.Instructions" disabled="@docDisabled" /></td>
+              @if (Model.CanEditDoctorSection)
+              {
+                <td><button type="button" class="btn ghost small" onclick="this.closest('tr').remove()">Remove</button></td>
+              }
+            </tr>
+          }
+        }
+        else if (Model.CanEditDoctorSection)
+        {
+          <tr>
+            <td><input name="RxMedicine" placeholder="e.g. Ferrous Sulfate + Folic Acid" /></td>
+            <td><input name="RxDose" placeholder="100mg" /></td>
+            <td><input name="RxFrequency" placeholder="Once daily" /></td>
+            <td><input name="RxDuration" placeholder="30 days" /></td>
+            <td><input name="RxInstructions" placeholder="After dinner" /></td>
+            <td><button type="button" class="btn ghost small" onclick="this.closest('tr').remove()">Remove</button></td>
+          </tr>
+        }
+        else
+        {
+          <tr><td colspan="5" class="muted">No medications prescribed yet.</td></tr>
+        }
+      </tbody>
+    </table>
+    @if (r.Prescriptions.Any())
+    {
+      var firstRx = r.Prescriptions.First();
+      <p class="small muted" style="margin:8px 0 0;">Prescribed by <strong>@firstRx.AuthorName</strong> (@firstRx.AuthorRole) on @firstRx.CreatedAt.ToString("dd MMM yyyy, hh:mm tt")</p>
+    }
+  </div>
+
+  @if (Model.CanCreateReferral)
+  {
+    <div class="card">
+      <h3>Optional: Refer to Hospital</h3>
+      <p class="small muted" style="margin-top:0;">Fill both fields only if this mother needs a specialist hospital referral.</p>
+      <div class="grid-2">
+        <div>
+          <label class="small">Destination Hospital</label>
+          <input name="ReferralHospital" placeholder="e.g. Civil Hospital Phagwara (OB-GYN)" />
+        </div>
+        <div>
+          <label class="small">Clinical Reason</label>
+          <input name="ReferralReason" placeholder="e.g. Persistent BP 150/95 with proteinuria" />
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (Model.CanEditDoctorSection)
+  {
+    <div class="card" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+      <button type="submit" class="btn ghost" onclick="document.getElementById('submitModeInput').value='draft'">Save Draft</button>
+      <button type="submit" class="btn teal" onclick="document.getElementById('submitModeInput').value='submit'">Submit Consultation</button>
+      <button type="submit" class="btn" onclick="document.getElementById('submitModeInput').value='submit_next'">Submit &amp; Next Patient &rarr;</button>
+    </div>
+  }
+</form>
+
+@section Scripts {
+  <script>
+    const addBtn = document.getElementById('addRxRowBtn');
+    const rxBody = document.getElementById('rxBody');
+    if (addBtn && rxBody) {
+      addBtn.addEventListener('click', () => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input name="RxMedicine" placeholder="Medicine name" /></td>
+          <td><input name="RxDose" placeholder="Dose" /></td>
+          <td><input name="RxFrequency" placeholder="Frequency" /></td>
+          <td><input name="RxDuration" placeholder="Duration" /></td>
+          <td><input name="RxInstructions" placeholder="Instructions" /></td>
+          <td><button type="button" class="btn ghost small" onclick="this.closest('tr').remove()">Remove</button></td>`;
+        rxBody.appendChild(tr);
+      });
+    }
+  </script>
+}

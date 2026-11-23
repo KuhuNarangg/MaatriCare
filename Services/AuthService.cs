@@ -25,12 +25,6 @@ public class AuthService
         return (user, null);
     }
 
-    public (string Action, string Controller) GetDashboardRouteForRole(string role) => role switch
-    {
-        "Admin" => ("Index", "Home"),
-        "Doctor" => ("Index", "Home"),
-        "HealthWorker" => ("Index", "Home"),
-        "Mother" => ("Index", "Home"),
-        _ => ("Index", "Home")
-    };
+    public (string Action, string Controller) GetDashboardRouteForRole(string role) =>
+        PermissionService.GetLandingRoute(role);
 }

@@ -1,4 +1,4 @@
-@* Index.cshtml - Follow-ups queue with Today, Overdue, and Upcoming tabs plus Call and Mark Done actions. *@
+@* Index.cshtml - Admin & Receptionist Follow-Ups queue (Today/Overdue/Upcoming) with Mark Contacted & notes. *@
 @model FollowUpPageViewModel
 @{
     ViewData["Title"] = "Follow-Ups";
@@ -7,7 +7,7 @@
 <div class="dash-header">
   <div>
     <h2>Follow-Ups Queue</h2>
-    <p>Daily outreach list for health workers and doctors with direct call and completion actions.</p>
+    <p>Missed appointments, overdue ANC visits, and overdue vaccines with contact tracking (Admin &amp; Receptionist only).</p>
   </div>
   <a class="btn teal" asp-controller="Notifications" asp-action="Index">Open SMS Reminders</a>
 </div>
@@ -31,7 +31,7 @@
     <div class="empty-state">
       <svg width="56" height="56" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="26" fill="#CFE3D4"/><path d="M18 28l7 7 13-13" stroke="#1F5F5B" stroke-width="3.5" stroke-linecap="round"/></svg>
       <h3>No follow-ups in this tab</h3>
-      <p>Switch to Overdue or Upcoming to plan your next outreach calls.</p>
+      <p>Switch to Overdue or Upcoming to review missed appointments, overdue ANC visits, and due vaccines.</p>
     </div>
   }
   else
@@ -40,10 +40,10 @@
       <thead>
         <tr>
           <th>Type</th>
-          <th>Name &amp; Village</th>
+          <th>Patient &amp; Village</th>
           <th>Action Needed</th>
           <th>Due Date</th>
-          <th>Actions</th>
+          <th>Mark Contacted &amp; Note</th>
         </tr>
       </thead>
       <tbody>
@@ -54,34 +54,29 @@
             <td>
               <a href="@item.DetailUrl"><strong>@item.PersonName</strong></a><br />
               <small class="muted">@item.Village &bull; @item.Phone</small>
-            </td>
-            <td>@item.Description</td>
-            <td>@item.DueDate.ToString("dd MMM yyyy")</td>
-            <td style="white-space:nowrap;">
               @if (!string.IsNullOrWhiteSpace(item.Phone))
               {
-                <a class="btn ghost small" style="margin-left:0;" href="tel:@item.Phone">Call</a>
+                <br /><a class="small" href="tel:@item.Phone">Call @item.Phone</a>
               }
-              @if (item.AppointmentId.HasValue)
+            </td>
+            <td>
+              @item.Description
+              @if (!string.IsNullOrWhiteSpace(item.LastContactNote))
               {
-                <form asp-action="CompleteAppointment" asp-route-id="@item.AppointmentId" method="post" style="display:inline;">
-                  @Html.AntiForgeryToken()
-                  <input type="hidden" name="tab" value="@Model.Tab" />
-                  <button type="submit" class="btn teal small">Mark Done</button>
-                </form>
+                <div style="margin-top:6px;padding:6px 10px;background:var(--sage);color:var(--sage-ink);border-radius:8px;font-size:0.8rem;">
+                  <strong>Contacted @item.LastContactedAt?.ToString("dd MMM, hh:mm tt"):</strong> @item.LastContactNote
+                </div>
               }
-              else if (item.VaccineId.HasValue)
-              {
-                <form asp-action="CompleteVaccine" asp-route-id="@item.VaccineId" method="post" style="display:inline;">
-                  @Html.AntiForgeryToken()
-                  <input type="hidden" name="tab" value="@Model.Tab" />
-                  <button type="submit" class="btn teal small">Mark Given</button>
-                </form>
-              }
-              else
-              {
-                <a class="btn small" href="@item.DetailUrl">Log Visit</a>
-              }
+            </td>
+            <td style="white-space:nowrap;">@item.DueDate.ToString("dd MMM yyyy")</td>
+            <td>
+              <form asp-action="MarkContacted" method="post" class="inline-give">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="targetKey" value="@item.TargetKey" />
+                <input type="hidden" name="tab" value="@Model.Tab" />
+                <input type="text" name="note" placeholder="Contact note..." style="width:160px;" />
+                <button type="submit" class="btn teal small" style="margin-left:0;">Mark Contacted</button>
+              </form>
             </td>
           </tr>
         }

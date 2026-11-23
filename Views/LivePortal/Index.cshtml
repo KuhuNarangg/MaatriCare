@@ -1,0 +1,179 @@
+@* Index.cshtml - Admin & Receptionist Live Appointment Portal with counters, LIVE cards, and 10s auto-refresh. *@
+@model LivePortalViewModel
+@{
+    ViewData["Title"] = "Live Appointment Portal";
+    var isReadOnly = PermissionService.IsReceptionist(User);
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Live Appointment Portal @(isReadOnly ? "(View-Only)" : "")</h2>
+    <p>Real-time clinic flow for @DateTime.Today.ToString("ddd, dd MMM yyyy") &bull; Auto-refreshes every 10 seconds. <span id="liveSync" class="small muted"></span></p>
+  </div>
+  <div class="quick-actions">
+    <a class="btn teal" asp-controller="Reception" asp-action="Index">Reception Desk</a>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi-card"><span class="kpi-label">Total Today</span><span class="kpi-val" id="kpiTotal">@Model.TotalToday</span></div>
+  <div class="kpi-card"><span class="kpi-label">Waiting</span><span class="kpi-val" id="kpiWaiting">@Model.WaitingCount</span></div>
+  <div class="kpi-card"><span class="kpi-label">In Consultation</span><span class="kpi-val accent" id="kpiConsult">@Model.InConsultationCount</span></div>
+  <div class="kpi-card"><span class="kpi-label">Attended</span><span class="kpi-val" id="kpiAttended">@Model.AttendedToday</span></div>
+  <div class="kpi-card"><span class="kpi-label">Missed</span><span class="kpi-val accent" id="kpiMissed">@Model.MissedToday</span></div>
+</div>
+
+<div class="card" style="border-left:4px solid var(--coral);">
+  <h3>LIVE Now (Current Slot / In Consultation)</h3>
+  <div id="liveNowBox" class="list-stack">
+    @if (!Model.LiveNow.Any())
+    {
+      <p class="muted">No appointment is currently in a live slot.</p>
+    }
+    @foreach (var a in Model.LiveNow)
+    {
+      int elapsed = a.ConsultationStartedAt.HasValue
+        ? Math.Max(0, (int)(DateTime.Now - a.ConsultationStartedAt.Value).TotalMinutes)
+        : Math.Max(0, (int)(DateTime.Now - a.SlotStart).TotalMinutes);
+      <a class="list-row queue-now" href="/Consultation/Open/@a.Id" style="text-decoration:none;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span class="pill high">LIVE</span>
+            <strong>@a.PatientDisplayName</strong>
+            <span class="pill medium" style="animation:none;">@a.Status</span>
+          </div>
+          <small>@a.DoctorName &bull; Slot @a.StartTime &bull; @a.Purpose &bull; Elapsed: <strong>@elapsed min</strong></small>
+        </div>
+        <span class="btn teal small" style="margin-left:0;">@(isReadOnly ? "View Live" : "Open")</span>
+      </a>
+    }
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h3>Waiting (<span id="cntWaiting">@Model.Waiting.Count</span>)</h3>
+    <div id="boxWaiting" class="list-stack">
+      @if (!Model.Waiting.Any()) { <p class="muted small">None waiting.</p> }
+      @foreach (var a in Model.Waiting)
+      {
+        <a class="list-row queue-waiting" href="/Consultation/Open/@a.Id" style="text-decoration:none;">
+          <div><strong>@a.PatientDisplayName</strong><small>@a.StartTime &bull; @a.DoctorName &bull; @a.Purpose</small></div>
+          <span class="pill medium" style="animation:none;">Waiting</span>
+        </a>
+      }
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>In Consultation (<span id="cntConsult">@Model.InConsultation.Count</span>)</h3>
+    <div id="boxConsult" class="list-stack">
+      @if (!Model.InConsultation.Any()) { <p class="muted small">No active consultation.</p> }
+      @foreach (var a in Model.InConsultation)
+      {
+        <a class="list-row" href="/Consultation/Open/@a.Id" style="text-decoration:none;">
+          <div><strong>@a.PatientDisplayName</strong><small>@a.StartTime &bull; @a.DoctorName &bull; @a.Purpose</small></div>
+          <span class="pill chip-consult" style="animation:none;">In Consultation</span>
+        </a>
+      }
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Completed Today (<span id="cntCompleted">@Model.CompletedToday.Count</span>)</h3>
+    <div id="boxCompleted" class="list-stack">
+      @if (!Model.CompletedToday.Any()) { <p class="muted small">None completed yet.</p> }
+      @foreach (var a in Model.CompletedToday)
+      {
+        <a class="list-row" href="/Consultation/Open/@a.Id" style="text-decoration:none;">
+          <div><strong>@a.PatientDisplayName</strong><small>@a.StartTime &bull; @a.DoctorName &bull; @a.Purpose</small></div>
+          <span class="pill low" style="animation:none;">Attended</span>
+        </a>
+      }
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Missed Today (<span id="cntMissed">@Model.MissedTodayList.Count</span>)</h3>
+    <div id="boxMissed" class="list-stack">
+      @if (!Model.MissedTodayList.Any()) { <p class="muted small">No missed appointments today.</p> }
+      @foreach (var a in Model.MissedTodayList)
+      {
+        <a class="list-row" href="/Consultation/Open/@a.Id" style="text-decoration:none;">
+          <div><strong>@a.PatientDisplayName</strong><small>@a.StartTime &bull; @a.DoctorName &bull; @a.Purpose</small></div>
+          <span class="pill high" style="animation:none;">Missed</span>
+        </a>
+      }
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Upcoming Today (<span id="cntUpcoming">@Model.UpcomingToday.Count</span>)</h3>
+  <div id="boxUpcoming" class="list-stack">
+    @if (!Model.UpcomingToday.Any()) { <p class="muted small">No more upcoming appointments today.</p> }
+    @foreach (var a in Model.UpcomingToday)
+    {
+      <a class="list-row" href="/Consultation/Open/@a.Id" style="text-decoration:none;">
+        <div><strong>@a.PatientDisplayName</strong><small>@a.StartTime &bull; @a.DoctorName &bull; @a.Purpose</small></div>
+        <span class="pill chip-sched" style="animation:none;">Scheduled</span>
+      </a>
+    }
+  </div>
+</div>
+
+@section Scripts {
+  <script>
+    const isReadOnly = @(isReadOnly ? "true" : "false");
+    function renderSimpleList(items, pillClass, emptyText) {
+      if (!items.length) return `<p class="muted small">${emptyText}</p>`;
+      return items.map(a => `
+        <a class="list-row ${a.status === 'Waiting' ? 'queue-waiting' : ''}" href="${a.openUrl}" style="text-decoration:none;">
+          <div><strong>${a.patient}</strong><small>${a.time} &bull; ${a.doctor} &bull; ${a.reason}</small></div>
+          <span class="pill ${pillClass}" style="animation:none;">${a.status}</span>
+        </a>`).join('');
+    }
+    async function pollLivePortal() {
+      try {
+        const res = await fetch('/LivePortal/FeedJson', { cache: 'no-store' });
+        if (!res.ok) return;
+        const d = await res.json();
+        document.getElementById('kpiTotal').textContent = d.totalToday;
+        document.getElementById('kpiWaiting').textContent = d.waitingCount;
+        document.getElementById('kpiConsult').textContent = d.inConsultationCount;
+        document.getElementById('kpiAttended').textContent = d.attendedToday;
+        document.getElementById('kpiMissed').textContent = d.missedToday;
+
+        document.getElementById('liveNowBox').innerHTML = !d.liveNow.length
+          ? '<p class="muted">No appointment is currently in a live slot.</p>'
+          : d.liveNow.map(a => `
+            <a class="list-row queue-now" href="${a.openUrl}" style="text-decoration:none;">
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <span class="pill high">LIVE</span>
+                  <strong>${a.patient}</strong>
+                  <span class="pill medium" style="animation:none;">${a.status}</span>
+                </div>
+                <small>${a.doctor} &bull; Slot ${a.time} &bull; ${a.reason} &bull; Elapsed: <strong>${a.elapsedMinutes} min</strong></small>
+              </div>
+              <span class="btn teal small" style="margin-left:0;">${isReadOnly ? 'View Live' : 'Open'}</span>
+            </a>`).join('');
+
+        document.getElementById('cntWaiting').textContent = d.waiting.length;
+        document.getElementById('boxWaiting').innerHTML = renderSimpleList(d.waiting, 'medium', 'None waiting.');
+        document.getElementById('cntConsult').textContent = d.inConsultation.length;
+        document.getElementById('boxConsult').innerHTML = renderSimpleList(d.inConsultation, 'chip-consult', 'No active consultation.');
+        document.getElementById('cntCompleted').textContent = d.completedToday.length;
+        document.getElementById('boxCompleted').innerHTML = renderSimpleList(d.completedToday, 'low', 'None completed yet.');
+        document.getElementById('cntMissed').textContent = d.missedTodayList.length;
+        document.getElementById('boxMissed').innerHTML = renderSimpleList(d.missedTodayList, 'high', 'No missed appointments today.');
+        document.getElementById('cntUpcoming').textContent = d.upcomingToday.length;
+        document.getElementById('boxUpcoming').innerHTML = renderSimpleList(d.upcomingToday, 'chip-sched', 'No more upcoming appointments today.');
+
+        const el = document.getElementById('liveSync');
+        if (el) el.textContent = '• Synced ' + new Date().toLocaleTimeString();
+      } catch (e) { }
+    }
+    setInterval(pollLivePortal, 10000);
+  </script>
+}

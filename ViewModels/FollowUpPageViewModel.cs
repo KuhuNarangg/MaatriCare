@@ -12,6 +12,7 @@ public class FollowUpPageViewModel
 
 public class FollowUpTaskRow
 {
+    public string TargetKey { get; set; }  // e.g. "appt-4", "anc-6", "vax-12"
     public string Kind { get; set; }       // Appointment, ANC Visit, Vaccine
     public int? AppointmentId { get; set; }
     public int? VaccineId { get; set; }
@@ -22,4 +23,6 @@ public class FollowUpTaskRow
     public DateTime DueDate { get; set; }
     public string Status { get; set; }     // Today, Overdue, Upcoming
     public string DetailUrl { get; set; }
+    public string LastContactNote { get; set; }
+    public DateTime? LastContactedAt { get; set; }
 }

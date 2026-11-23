@@ -50,9 +50,9 @@
           <td>@(string.IsNullOrWhiteSpace(u.Phone) ? "—" : u.Phone)</td>
           <td><span class="pill @(u.Role == "Admin" ? "high" : u.Role == "Doctor" ? "low" : "medium")" style="animation:none;">@u.Role</span></td>
           <td>
-            @if (u.Role == "HealthWorker")
+            @if (u.Role == "Nurse")
             {
-              <span class="small muted">@(string.IsNullOrWhiteSpace(u.AssignedVillages) ? "No villages assigned" : u.AssignedVillages)</span>
+              <span class="small muted">@(string.IsNullOrWhiteSpace(u.AssignedVillages) ? "All villages" : u.AssignedVillages)</span>
             }
             else if (u.Role == "Mother" && u.MotherId.HasValue && mothersMap.ContainsKey(u.MotherId.Value))
             {

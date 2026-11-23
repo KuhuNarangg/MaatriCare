@@ -20,7 +20,7 @@ public class UsersController : Controller
     public async Task<IActionResult> Create()
     {
         await LoadFormLookupsAsync();
-        return View(new UserFormViewModel { Role = "HealthWorker", IsActive = true });
+        return View(new UserFormViewModel { Role = "Nurse", IsActive = true });
     }
 
     [HttpPost]

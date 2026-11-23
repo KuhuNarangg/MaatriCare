@@ -1,4 +1,4 @@
-// DashboardViewModel.cs - data transfer objects for Admin/Doctor, HealthWorker, and Mother dashboards.
+// DashboardViewModel.cs - data transfer objects for Admin/Doctor, Nurse, and Mother dashboards.
 using MaatriCare.Models;
 namespace MaatriCare.ViewModels;
 
@@ -28,7 +28,7 @@ public class DashboardViewModel
     public List<FollowUpItem> TodaysFollowUps { get; set; } = new();
     public List<ActivityItem> RecentActivity { get; set; } = new();
 
-    // HealthWorker specific
+    // Nurse specific
     public List<string> AssignedVillages { get; set; } = new();
     public List<FollowUpItem> WorkerTasks { get; set; } = new();
     public List<FollowUpItem> WorkerOverdue { get; set; } = new();

@@ -1,0 +1,76 @@
+@* Book.cshtml - Reception Desk form to book an appointment for a mother or newborn with doctor and slot time. *@
+@model AppointmentFormViewModel
+@{
+    ViewData["Title"] = "Book Appointment";
+    var mothers = ViewBag.Mothers as List<Mother> ?? new();
+    var newborns = ViewBag.Newborns as List<Newborn> ?? new();
+    var doctors = ViewBag.Doctors as List<AppUser> ?? new();
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Book Appointment</h2>
+    <p>Schedule a mother or newborn with a clinic doctor.</p>
+  </div>
+  <a class="btn ghost" asp-action="Index">&larr; Back to Reception Desk</a>
+</div>
+
+<form method="post" class="card form" style="max-width:600px;" novalidate>
+  @Html.AntiForgeryToken()
+  <div asp-validation-summary="All" class="err"></div>
+
+  <label asp-for="MotherId">Mother (Required)</label>
+  <select asp-for="MotherId">
+    <option value="">-- Select a mother --</option>
+    @foreach (var m in mothers)
+    {
+      <option value="@m.Id">@m.Name (@m.Village — Week @m.Week)</option>
+    }
+  </select>
+
+  <label asp-for="NewbornId">Newborn Patient (optional — if booking for a baby)</label>
+  <select asp-for="NewbornId">
+    <option value="">-- Appointment is for the Mother --</option>
+    @foreach (var b in newborns)
+    {
+      <option value="@b.Id">@b.Name (Mother: @b.Mother?.Name)</option>
+    }
+  </select>
+
+  <label asp-for="DoctorUsername">Assigned Doctor</label>
+  <select asp-for="DoctorUsername">
+    @foreach (var d in doctors)
+    {
+      <option value="@d.Username">@(string.IsNullOrWhiteSpace(d.FullName) ? d.Username : d.FullName)</option>
+    }
+  </select>
+
+  <div class="grid-2">
+    <div>
+      <label asp-for="ScheduledDate">Date</label>
+      <input asp-for="ScheduledDate" type="date" />
+    </div>
+    <div>
+      <label asp-for="StartTime">Time (24h HH:mm)</label>
+      <input asp-for="StartTime" type="time" />
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <label asp-for="DurationMinutes">Duration (minutes)</label>
+      <input asp-for="DurationMinutes" type="number" min="5" max="120" />
+    </div>
+    <div>
+      <label asp-for="Purpose">Reason / Purpose</label>
+      <input asp-for="Purpose" placeholder="e.g. Routine ANC Check-up" />
+    </div>
+  </div>
+
+  <label asp-for="Notes">Notes (optional)</label>
+  <input asp-for="Notes" placeholder="Any notes for reception or doctor" />
+
+  <div style="margin-top:20px;">
+    <button type="submit" class="btn">Book Appointment</button>
+  </div>
+</form>

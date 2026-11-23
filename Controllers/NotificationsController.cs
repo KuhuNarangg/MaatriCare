@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using MaatriCare.Services;
 namespace MaatriCare.Controllers;
 
-[Authorize(Roles = "Admin,Doctor,HealthWorker")]
+[Authorize(Roles = "Admin,Receptionist")]
 public class NotificationsController : Controller
 {
     private readonly ReminderService reminders;

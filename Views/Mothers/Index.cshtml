@@ -10,8 +10,14 @@
     <p>Showing @Model.Items.Count of @Model.TotalCount registered mother(s).</p>
   </div>
   <div class="quick-actions">
-    <a class="btn" asp-action="Create">+ Register Mother</a>
-    <a class="btn teal" asp-controller="Appointments" asp-action="Create">+ Book Appointment</a>
+    @if (PermissionService.CanRegisterPatient(User))
+    {
+      <a class="btn" asp-action="Create">+ Register Patient</a>
+    }
+    @if (PermissionService.CanScheduleAppointments(User))
+    {
+      <a class="btn teal" asp-controller="Reception" asp-action="Book">+ Book Appointment</a>
+    }
   </div>
 </div>
 
@@ -94,11 +100,18 @@
             <td>@m.Edd.ToString("dd MMM yyyy")</td>
             <td><span class="pill @row.RiskLevel.ToLower()">@row.RiskLevel (@row.RiskScore)</span></td>
             <td style="white-space:nowrap;">
-              <a class="btn ghost small" style="margin-left:0;" asp-action="Edit" asp-route-id="@m.Id">Edit</a>
-              <form asp-action="Delete" asp-route-id="@m.Id" method="post" style="display:inline;" onsubmit="return confirm('Delete @m.Name and all her ANC visits?');">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn small">Delete</button>
-              </form>
+              <a class="btn ghost small" style="margin-left:0;" asp-action="Details" asp-route-id="@m.Id">View</a>
+              @if (PermissionService.CanEditPatientAndClinical(User))
+              {
+                <a class="btn ghost small" asp-action="Edit" asp-route-id="@m.Id">Edit</a>
+              }
+              @if (PermissionService.CanDeleteRecords(User))
+              {
+                <form asp-action="Delete" asp-route-id="@m.Id" method="post" style="display:inline;" onsubmit="return confirm('Delete @m.Name and all her ANC visits?');">
+                  @Html.AntiForgeryToken()
+                  <button type="submit" class="btn small">Delete</button>
+                </form>
+              }
             </td>
           </tr>
         }

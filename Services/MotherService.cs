@@ -77,6 +77,7 @@ public class MotherService
             .Include(x => x.Newborns)
             .Include(x => x.Appointments)
             .Include(x => x.Deliveries)
+            .Include(x => x.VisitRecords).ThenInclude(vr => vr.Prescriptions)
             .FirstOrDefaultAsync(x => x.Id == id);
         if (m == null) return null;
 

@@ -1,0 +1,118 @@
+@* Print.cshtml - clean print-ready prescription and visit summary layout. *@
+@model VisitRecord
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Prescription — @Model.Mother?.Name</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', sans-serif; color: #1F2E2D; margin: 0; padding: 32px; background: #FBF6F0; }
+    .sheet { max-width: 780px; margin: 0 auto; background: #fff; border: 1px solid #E7DDD0; border-radius: 16px; padding: 34px 38px; }
+    .head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1F5F5B; padding-bottom: 16px; margin-bottom: 20px; }
+    h1 { font-family: 'Plus Jakarta Sans', sans-serif; color: #1F5F5B; margin: 0; font-size: 1.7rem; }
+    h1 span { color: #F2785C; }
+    h3 { font-family: 'Plus Jakarta Sans', sans-serif; color: #1F5F5B; font-size: 1.05rem; margin: 20px 0 8px; }
+    .meta { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 20px; background: #FBF6F0; padding: 14px 18px; border-radius: 12px; font-size: 0.92rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.92rem; }
+    th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid #EAE2D6; }
+    th { background: #F3EAE0; color: #1F5F5B; }
+    .rx-symbol { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.5rem; font-weight: 700; color: #F2785C; margin-right: 6px; }
+    .sign { margin-top: 36px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 0.88rem; color: #5C6E6D; }
+    .no-print { text-align: center; margin-bottom: 18px; }
+    .btn { background: #1F5F5B; color: #fff; border: 0; padding: 10px 22px; border-radius: 999px; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; }
+    @@media print {
+      body { background: #fff; padding: 0; }
+      .sheet { border: 0; border-radius: 0; padding: 0; max-width: none; }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print">
+    <button type="button" class="btn" onclick="window.print()">Print Prescription</button>
+  </div>
+  <div class="sheet">
+    <div class="head">
+      <div>
+        <h1>Maatri<span>Care</span></h1>
+        <div style="font-size:0.86rem;color:#5C6E6D;">Maternal &amp; Newborn Primary Health Unit &bull; Phagwara, Punjab</div>
+      </div>
+      <div style="text-align:right;font-size:0.88rem;">
+        <strong>Date:</strong> @Model.VisitDate.ToString("dd MMM yyyy")<br />
+        <strong>Record #:</strong> VR-@Model.Id
+      </div>
+    </div>
+
+    <div class="meta">
+      <div><strong>Patient:</strong> @Model.Mother?.Name (Age @Model.Mother?.Age)</div>
+      <div><strong>Village / Phone:</strong> @Model.Mother?.Village &bull; @Model.Mother?.Phone</div>
+      <div><strong>Gestation:</strong> Week @Model.Mother?.Week &bull; EDD @Model.Mother?.Edd.ToString("dd MMM yyyy")</div>
+      <div><strong>Vitals:</strong> BP @(Model.Systolic.HasValue ? $"{Model.Systolic}/{Model.Diastolic}" : "—") &bull; Hb @(Model.Hb.HasValue ? $"{Model.Hb}" : "—") &bull; Wt @(Model.WeightKg.HasValue ? $"{Model.WeightKg:0.0} kg" : "—")</div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Diagnosis) || !string.IsNullOrWhiteSpace(Model.Symptoms))
+    {
+      <h3>Clinical Assessment</h3>
+      @if (!string.IsNullOrWhiteSpace(Model.Symptoms)) { <p style="margin:4px 0;"><strong>Symptoms:</strong> @Model.Symptoms</p> }
+      @if (!string.IsNullOrWhiteSpace(Model.Diagnosis)) { <p style="margin:4px 0;"><strong>Diagnosis:</strong> @Model.Diagnosis</p> }
+    }
+
+    <h3><span class="rx-symbol">Rx</span> Prescribed Medications</h3>
+    @if (!Model.Prescriptions.Any())
+    {
+      <p style="color:#5C6E6D;">No medications prescribed.</p>
+    }
+    else
+    {
+      <table>
+        <thead>
+          <tr><th>Medicine</th><th>Dose</th><th>Frequency</th><th>Duration</th><th>Instructions</th></tr>
+        </thead>
+        <tbody>
+          @foreach (var rx in Model.Prescriptions)
+          {
+            <tr>
+              <td><strong>@rx.MedicineName</strong></td>
+              <td>@rx.Dose</td>
+              <td>@rx.Frequency</td>
+              <td>@rx.Duration</td>
+              <td>@rx.Instructions</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.TestsAdvised))
+    {
+      <h3>Tests Advised</h3>
+      <p style="margin:4px 0;">@Model.TestsAdvised</p>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.Advice))
+    {
+      <h3>Advice</h3>
+      <p style="margin:4px 0;">@Model.Advice</p>
+    }
+
+    <div class="sign">
+      <div>
+        @if (Model.NextFollowUpDate.HasValue)
+        {
+          <strong>Next Follow-Up:</strong> @Model.NextFollowUpDate.Value.ToString("dd MMM yyyy")
+        }
+      </div>
+      <div style="text-align:right;">
+        <div style="border-top:1px solid #1F5F5B;padding-top:6px;min-width:210px;">
+          <strong>@(string.IsNullOrWhiteSpace(Model.DoctorAuthorName) ? "Attending Doctor" : Model.DoctorAuthorName)</strong><br />
+          <span>@(string.IsNullOrWhiteSpace(Model.DoctorAuthorRole) ? "Doctor" : Model.DoctorAuthorRole) &bull; @(Model.DoctorUpdatedAt?.ToString("dd MMM yyyy, hh:mm tt") ?? Model.VisitDate.ToString("dd MMM yyyy"))</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

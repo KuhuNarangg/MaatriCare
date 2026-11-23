@@ -34,12 +34,13 @@
   <select asp-for="Role" id="roleSelect">
     <option value="Admin">Admin</option>
     <option value="Doctor">Doctor</option>
-    <option value="HealthWorker">HealthWorker</option>
+    <option value="Nurse">Nurse</option>
+    <option value="Receptionist">Receptionist</option>
     <option value="Mother">Mother</option>
   </select>
 
   <div id="villageGroup" style="margin-top:14px;">
-    <label>Assigned Villages (for HealthWorker)</label>
+    <label>Assigned Villages (for Nurse)</label>
     <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:6px;">
       @foreach (var v in villages)
       {
@@ -76,7 +77,7 @@
     const vg = document.getElementById('villageGroup');
     const mg = document.getElementById('motherGroup');
     function syncRoleFields() {
-      vg.style.display = sel.value === 'HealthWorker' ? 'block' : 'none';
+      vg.style.display = sel.value === 'Nurse' ? 'block' : 'none';
       mg.style.display = sel.value === 'Mother' ? 'block' : 'none';
     }
     sel.addEventListener('change', syncRoleFields);

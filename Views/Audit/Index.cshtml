@@ -1,0 +1,68 @@
+@* Index.cshtml - Admin-only audit trail showing user, role, action, entity, details, and timestamp. *@
+@model List<AuditLog>
+@{
+    ViewData["Title"] = "Audit Log";
+    string roleFilter = ViewBag.Role as string ?? "";
+    string entityFilter = ViewBag.EntityType as string ?? "";
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Audit Log</h2>
+    <p>Complete history of every create, edit, status change, and delete across clinical records, appointments, and referrals.</p>
+  </div>
+</div>
+
+<form method="get" class="card filter-bar">
+  <select name="role">
+    <option value="">All Roles</option>
+    @foreach (var r in new[] { "Admin", "Doctor", "Nurse", "Receptionist" })
+    {
+      <option value="@r" selected="@(roleFilter == r)">@r</option>
+    }
+  </select>
+  <select name="entityType">
+    <option value="">All Entities</option>
+    @foreach (var e in new[] { "Mother", "Appointment", "VisitRecord", "AncVisit", "Referral", "Vaccine", "Delivery", "Newborn", "GrowthRecord", "FollowUp" })
+    {
+      <option value="@e" selected="@(entityFilter == e)">@e</option>
+    }
+  </select>
+  <button type="submit" class="btn teal">Filter</button>
+  <a asp-action="Index" class="btn ghost">Reset</a>
+</form>
+
+<div class="card">
+  @if (!Model.Any())
+  {
+    <p class="muted">No audit events match the selected filters.</p>
+  }
+  else
+  {
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>User</th>
+          <th>Role</th>
+          <th>Action</th>
+          <th>Entity</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var log in Model)
+        {
+          <tr>
+            <td style="white-space:nowrap;" class="small">@log.Timestamp.ToString("dd MMM yyyy, hh:mm:ss tt")</td>
+            <td><strong>@log.Username</strong></td>
+            <td><span class="pill medium" style="animation:none;">@log.Role</span></td>
+            <td><span class="pill @(log.Action == "Delete" ? "high" : log.Action == "Create" ? "low" : "chip-sched")" style="animation:none;">@log.Action</span></td>
+            <td>@log.EntityType @(log.EntityId.HasValue ? $"#{log.EntityId}" : "")</td>
+            <td class="small">@log.Details</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

@@ -1,8 +1,12 @@
-@* Details.cshtml - Mother profile with Pregnancy Journey timeline, auto ANC schedule, risk panel, visits, and appointments. *@
+@* Details.cshtml - Mother profile with Overview & Records tabs, Pregnancy Journey timeline, ANC schedule, risk panel, and role permissions. *@
 @model MotherDetailsViewModel
 @{
     var m = Model.Mother;
-    var isStaff = !User.IsInRole("Mother");
+    var canEditClinical = PermissionService.CanEditPatientAndClinical(User);
+    var canDelete = PermissionService.CanDeleteRecords(User);
+    var canSchedule = PermissionService.CanScheduleAppointments(User);
+    var isReadOnly = PermissionService.IsReceptionist(User);
+    string activeTab = (ViewBag.ActiveTab as string ?? "overview").ToLower();
     ViewData["Title"] = m.Name;
     string countdown = m.DaysToEdd > 0 ? $"{m.DaysToEdd} days left" : m.DaysToEdd == 0 ? "Due today" : $"{Math.Abs(m.DaysToEdd)} days past EDD";
 }
@@ -12,20 +16,36 @@
     <h2>@m.Name <span class="pill @Model.RiskLevel.ToLower()">@Model.RiskLevel risk (Score @Model.RiskScore)</span></h2>
     <p>@m.Village &bull; @m.Phone &bull; Age @m.Age &bull; Blood Group @(string.IsNullOrWhiteSpace(m.BloodGroup) ? "—" : m.BloodGroup) @(m.PreviousCSection ? "• Previous C-section" : "") @(m.PreviousComplications > 0 ? $"• {m.PreviousComplications} prev. complication(s)" : "")</p>
   </div>
-  @if (isStaff)
-  {
-    <div class="quick-actions">
+  <div class="quick-actions">
+    @if (canEditClinical)
+    {
       <a class="btn teal" asp-action="AddVisit" asp-route-id="@m.Id">+ Add ANC Visit</a>
-      <a class="btn ghost" asp-controller="Referrals" asp-action="Create" asp-route-motherId="@m.Id" asp-route-reason="@string.Join("; ", Model.RiskReasons)">+ Refer to Hospital</a>
       <a class="btn ghost" asp-action="Edit" asp-route-id="@m.Id">Edit Mother</a>
+    }
+    @if (canSchedule)
+    {
+      <a class="btn teal" asp-controller="Reception" asp-action="Book" asp-route-motherId="@m.Id">+ Book Appointment</a>
+    }
+    @if (PermissionService.CanViewFollowUpsAndReferrals(User))
+    {
+      <a class="btn ghost" asp-controller="Referrals" asp-action="Create" asp-route-motherId="@m.Id" asp-route-reason="@string.Join("; ", Model.RiskReasons)">+ Refer to Hospital</a>
+    }
+    @if (canDelete)
+    {
       <form asp-action="Delete" asp-route-id="@m.Id" method="post" style="display:inline;" onsubmit="return confirm('Delete @m.Name and all her clinical records?');">
         @Html.AntiForgeryToken()
         <button type="submit" class="btn">Delete</button>
       </form>
-    </div>
-  }
+    }
+  </div>
 </div>
 
+@if (isReadOnly)
+{
+  <div class="card" style="background:var(--butter);color:var(--butter-ink);border-color:transparent;padding:12px 18px;">
+    <strong>Read-Only Clinical View:</strong> You can view patient records, notes, and prescriptions, or book appointments, but clinical editing is restricted to Doctors, Nurses, and Admins.
+  </div>
+}
 @if (TempData["Success"] != null)
 {
   <div class="card" style="background:var(--sage);color:var(--sage-ink);border-color:transparent;padding:12px 18px;">
@@ -33,222 +53,258 @@
   </div>
 }
 
-<div class="card">
-  <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;">
-    <h3 style="margin:0;">Pregnancy Journey &mdash; Week @m.Week of 40</h3>
-    <div>
-      <span class="pill low">Trimester @m.Trimester</span>
-      <span class="pill medium">EDD: @m.Edd.ToString("dd MMM yyyy") (@countdown)</span>
-    </div>
-  </div>
-
-  <div class="timeline-box">
-    <div class="timeline-track">
-      <div class="timeline-fill" style="width:@(Math.Clamp(m.Week * 100 / 40, 2, 100))%"></div>
-      @foreach (var ms in Model.VisitMilestones)
-      {
-        int leftPct = Math.Clamp(ms.Week * 100 / 40, 2, 98);
-        <span class="timeline-marker" style="left:@(leftPct)%" title="Week @ms.Week (@ms.VisitDate.ToString("dd MMM yyyy")): @ms.Summary"></span>
-      }
-      <span class="timeline-now" style="left:@(Math.Clamp(m.Week * 100 / 40, 2, 98))%" title="Current: Week @m.Week"></span>
-    </div>
-    <div class="timeline-ticks">
-      <span>Wk 1 (LMP @m.Lmp.ToString("dd MMM"))</span>
-      <span>Wk 12 (T1 End)</span>
-      <span>Wk 26 (T2 End)</span>
-      <span>Wk 40 (EDD @m.Edd.ToString("dd MMM"))</span>
-    </div>
-  </div>
-  <p class="small muted" style="margin:0;">Teal dots mark recorded ANC visits (hover for vitals); coral dot marks current gestational week.</p>
+<div style="display:flex;gap:8px;margin-bottom:16px;">
+  <a class="page-btn @(activeTab == "overview" ? "active" : "")" asp-action="Details" asp-route-id="@m.Id" asp-route-tab="overview">Clinical Overview</a>
+  <a class="page-btn @(activeTab == "records" ? "active" : "")" asp-action="Details" asp-route-id="@m.Id" asp-route-tab="records">Records (@m.VisitRecords.Count)</a>
 </div>
 
-<div class="grid-2">
+@if (activeTab == "records")
+{
   <div class="card">
-    <h3>Why @Model.RiskLevel risk?</h3>
-    @if (Model.RiskReasons.Count == 0)
+    <h3>Date-Wise Visit Records (Newest First)</h3>
+    @if (!m.VisitRecords.Any())
     {
-      <p class="muted">No elevated risk factors detected so far.</p>
-    }
-    else
-    {
-      <ul style="margin:6px 0 10px;padding-left:20px;">
-        @foreach (var x in Model.RiskReasons)
-        {
-          <li style="margin-bottom:4px;">@x</li>
-        }
-      </ul>
-    }
-    <div class="action-box @(Model.RiskLevel == "High" ? "high-box" : "")">
-      <strong>Recommended Action:</strong> @Model.RecommendedAction
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>Auto-Generated ANC Schedule</h3>
-    <div class="schedule-grid">
-      @foreach (var slot in Model.AncSchedule)
-      {
-        <div class="schedule-slot">
-          <strong>@slot.Label &bull; @slot.WindowText</strong>
-          <div class="small muted" style="margin-bottom:8px;">
-            @(slot.CompletedOn.HasValue ? $"Done on {slot.CompletedOn:dd MMM yyyy}" : $"Due by {slot.DueDate:dd MMM yyyy}")
-          </div>
-          <span class="pill @(slot.Status == "Done" ? "low" : slot.Status == "Overdue" ? "high" : "medium")" style="animation:none;">@slot.Status</span>
-        </div>
-      }
-    </div>
-  </div>
-</div>
-
-<div class="card">
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
-    <h3 style="margin:0;">ANC Visits (@m.Visits.Count)</h3>
-    @if (isStaff)
-    {
-      <a class="btn small" style="margin-left:0;" asp-action="AddVisit" asp-route-id="@m.Id">+ Add Visit</a>
-    }
-  </div>
-  @if (!m.Visits.Any())
-  {
-    <p class="muted">No antenatal check-ups recorded yet.</p>
-  }
-  else
-  {
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>BP</th>
-          <th>Hb</th>
-          <th>Sugar</th>
-          <th>Weight</th>
-          <th>Urine</th>
-          <th>Fetal HR</th>
-          <th>Next Visit</th>
-          <th>Notes</th>
-          @if (isStaff) { <th>Actions</th> }
-        </tr>
-      </thead>
-      <tbody>
-        @foreach (var v in m.Visits.OrderByDescending(x => x.VisitDate))
-        {
-          <tr>
-            <td>@v.VisitDate.ToString("dd MMM yyyy")</td>
-            <td>@v.Systolic/@v.Diastolic</td>
-            <td>@v.Hb</td>
-            <td>@v.BloodSugar</td>
-            <td>@(v.WeightKg.HasValue ? $"{v.WeightKg:0.0} kg" : "—")</td>
-            <td>@(string.IsNullOrWhiteSpace(v.UrineProtein) ? "Nil" : v.UrineProtein)</td>
-            <td>@(v.FetalHeartbeat.HasValue ? $"{v.FetalHeartbeat} bpm" : "—")</td>
-            <td>@(v.NextVisitDate.HasValue ? v.NextVisitDate.Value.ToString("dd MMM yyyy") : "—")</td>
-            <td>@v.Notes</td>
-            @if (isStaff)
-            {
-              <td style="white-space:nowrap;">
-                <a class="btn ghost small" style="margin-left:0;" asp-action="EditVisit" asp-route-id="@v.Id">Edit</a>
-                <form asp-action="DeleteVisit" asp-route-id="@v.Id" method="post" style="display:inline;" onsubmit="return confirm('Delete this ANC visit?');">
-                  @Html.AntiForgeryToken()
-                  <button type="submit" class="btn small">Delete</button>
-                </form>
-              </td>
-            }
-          </tr>
-        }
-      </tbody>
-    </table>
-  }
-</div>
-
-<div class="grid-2">
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
-      <h3 style="margin:0;">Appointments (@m.Appointments.Count)</h3>
-      @if (isStaff)
-      {
-        <a class="btn teal small" style="margin-left:0;" asp-controller="Appointments" asp-action="Create" asp-route-motherId="@m.Id">+ Book</a>
-      }
-    </div>
-    @if (!m.Appointments.Any())
-    {
-      <p class="muted">No appointments booked yet.</p>
+      <div class="empty-state">
+        <h3>No consultation records yet</h3>
+        <p>Completed consultations from the Doctor or Nurse Portal appear here automatically with full notes and prescriptions.</p>
+      </div>
     }
     else
     {
       <div class="list-stack">
-        @foreach (var a in m.Appointments.OrderByDescending(x => x.ScheduledDate))
+        @foreach (var vr in m.VisitRecords.OrderByDescending(x => x.VisitDate))
         {
           <div class="list-row">
             <div>
-              <strong>@a.Purpose</strong>
-              <small>@a.ScheduledDate.ToString("dd MMM yyyy") @(string.IsNullOrWhiteSpace(a.Notes) ? "" : $"• {a.Notes}")</small>
-            </div>
-            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-              <span class="pill @(a.Status == "Attended" ? "low" : a.Status == "Missed" ? "high" : "medium")" style="animation:none;">@a.Status</span>
-              @if (isStaff && a.Status == "Scheduled")
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+                <a asp-controller="Records" asp-action="Details" asp-route-id="@vr.Id"><strong>@vr.VisitDate.ToString("dd MMM yyyy, hh:mm tt")</strong></a>
+                <span class="pill @(vr.IsDraft ? "medium" : "low")" style="animation:none;">@(vr.IsDraft ? "Draft" : "Finalized")</span>
+              </div>
+              <small>
+                <strong>Diagnosis:</strong> @(string.IsNullOrWhiteSpace(vr.Diagnosis) ? "—" : vr.Diagnosis)
+                &bull; <strong>Vitals:</strong> BP @(vr.Systolic.HasValue ? $"{vr.Systolic}/{vr.Diastolic}" : "—"), Hb @(vr.Hb.HasValue ? $"{vr.Hb}" : "—")
+                &bull; <strong>Prescriptions:</strong> @vr.Prescriptions.Count medicine(s)
+              </small>
+              @if (!string.IsNullOrWhiteSpace(vr.DoctorAuthorName))
               {
-                <form asp-controller="Appointments" asp-action="MarkStatus" method="post" style="display:inline;">
-                  @Html.AntiForgeryToken()
-                  <input type="hidden" name="id" value="@a.Id" />
-                  <input type="hidden" name="status" value="Attended" />
-                  <input type="hidden" name="returnTo" value="mother" />
-                  <button type="submit" class="btn teal small" style="margin-left:0;">Attended</button>
-                </form>
-                <form asp-controller="Appointments" asp-action="MarkStatus" method="post" style="display:inline;">
-                  @Html.AntiForgeryToken()
-                  <input type="hidden" name="id" value="@a.Id" />
-                  <input type="hidden" name="status" value="Missed" />
-                  <input type="hidden" name="returnTo" value="mother" />
-                  <button type="submit" class="btn small" style="margin-left:0;">Missed</button>
-                </form>
+                <br /><small class="muted">Doctor: @vr.DoctorAuthorName (@vr.DoctorAuthorRole)</small>
               }
+              @if (!string.IsNullOrWhiteSpace(vr.NurseAuthorName))
+              {
+                <small class="muted"> &bull; Nurse: @vr.NurseAuthorName (@vr.NurseAuthorRole)</small>
+              }
+            </div>
+            <div style="white-space:nowrap;">
+              <a class="btn teal small" style="margin-left:0;" asp-controller="Records" asp-action="Details" asp-route-id="@vr.Id">Open Record</a>
+              <a class="btn ghost small" asp-controller="Records" asp-action="Print" asp-route-id="@vr.Id" target="_blank">Print Rx</a>
             </div>
           </div>
         }
       </div>
     }
+  </div>
+}
+else
+{
+  <div class="card">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;">
+      <h3 style="margin:0;">Pregnancy Journey &mdash; Week @m.Week of 40</h3>
+      <div>
+        <span class="pill low">Trimester @m.Trimester</span>
+        <span class="pill medium">EDD: @m.Edd.ToString("dd MMM yyyy") (@countdown)</span>
+      </div>
+    </div>
+
+    <div class="timeline-box">
+      <div class="timeline-track">
+        <div class="timeline-fill" style="width:@(Math.Clamp(m.Week * 100 / 40, 2, 100))%"></div>
+        @foreach (var ms in Model.VisitMilestones)
+        {
+          int leftPct = Math.Clamp(ms.Week * 100 / 40, 2, 98);
+          <span class="timeline-marker" style="left:@(leftPct)%" title="Week @ms.Week (@ms.VisitDate.ToString("dd MMM yyyy")): @ms.Summary"></span>
+        }
+        <span class="timeline-now" style="left:@(Math.Clamp(m.Week * 100 / 40, 2, 98))%" title="Current: Week @m.Week"></span>
+      </div>
+      <div class="timeline-ticks">
+        <span>Wk 1 (LMP @m.Lmp.ToString("dd MMM"))</span>
+        <span>Wk 12 (T1 End)</span>
+        <span>Wk 26 (T2 End)</span>
+        <span>Wk 40 (EDD @m.Edd.ToString("dd MMM"))</span>
+      </div>
+    </div>
+    <p class="small muted" style="margin:0;">Teal dots mark recorded ANC visits (hover for vitals); coral dot marks current gestational week.</p>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>Why @Model.RiskLevel risk?</h3>
+      @if (Model.RiskReasons.Count == 0)
+      {
+        <p class="muted">No elevated risk factors detected so far.</p>
+      }
+      else
+      {
+        <ul style="margin:6px 0 10px;padding-left:20px;">
+          @foreach (var x in Model.RiskReasons)
+          {
+            <li style="margin-bottom:4px;">@x</li>
+          }
+        </ul>
+      }
+      <div class="action-box @(Model.RiskLevel == "High" ? "high-box" : "")">
+        <strong>Recommended Action:</strong> @Model.RecommendedAction
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Auto-Generated ANC Schedule</h3>
+      <div class="schedule-grid">
+        @foreach (var slot in Model.AncSchedule)
+        {
+          <div class="schedule-slot">
+            <strong>@slot.Label &bull; @slot.WindowText</strong>
+            <div class="small muted" style="margin-bottom:8px;">
+              @(slot.CompletedOn.HasValue ? $"Done on {slot.CompletedOn:dd MMM yyyy}" : $"Due by {slot.DueDate:dd MMM yyyy}")
+            </div>
+            <span class="pill @(slot.Status == "Done" ? "low" : slot.Status == "Overdue" ? "high" : "medium")" style="animation:none;">@slot.Status</span>
+          </div>
+        }
+      </div>
+    </div>
   </div>
 
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
-      <h3 style="margin:0;">Deliveries &amp; Newborns</h3>
-      @if (isStaff)
+      <h3 style="margin:0;">ANC Visits (@m.Visits.Count)</h3>
+      @if (canEditClinical)
       {
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <a class="btn teal small" style="margin-left:0;" asp-controller="Newborns" asp-action="RecordDelivery" asp-route-motherId="@m.Id">+ Record Delivery</a>
-          <a class="btn small" style="margin-left:0;" asp-controller="Newborns" asp-action="Create" asp-route-motherId="@m.Id">+ Register Baby</a>
+        <a class="btn small" style="margin-left:0;" asp-action="AddVisit" asp-route-id="@m.Id">+ Add Visit</a>
+      }
+    </div>
+    @if (!m.Visits.Any())
+    {
+      <p class="muted">No antenatal check-ups recorded yet.</p>
+    }
+    else
+    {
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th><th>BP</th><th>Hb</th><th>Sugar</th><th>Weight</th><th>Urine</th><th>Fetal HR</th><th>Next Visit</th><th>Notes</th>
+            @if (canEditClinical) { <th>Actions</th> }
+          </tr>
+        </thead>
+        <tbody>
+          @foreach (var v in m.Visits.OrderByDescending(x => x.VisitDate))
+          {
+            <tr>
+              <td>@v.VisitDate.ToString("dd MMM yyyy")</td>
+              <td>@v.Systolic/@v.Diastolic</td>
+              <td>@v.Hb</td>
+              <td>@v.BloodSugar</td>
+              <td>@(v.WeightKg.HasValue ? $"{v.WeightKg:0.0} kg" : "—")</td>
+              <td>@(string.IsNullOrWhiteSpace(v.UrineProtein) ? "Nil" : v.UrineProtein)</td>
+              <td>@(v.FetalHeartbeat.HasValue ? $"{v.FetalHeartbeat} bpm" : "—")</td>
+              <td>@(v.NextVisitDate.HasValue ? v.NextVisitDate.Value.ToString("dd MMM yyyy") : "—")</td>
+              <td>@v.Notes</td>
+              @if (canEditClinical)
+              {
+                <td style="white-space:nowrap;">
+                  <a class="btn ghost small" style="margin-left:0;" asp-action="EditVisit" asp-route-id="@v.Id">Edit</a>
+                  @if (canDelete)
+                  {
+                    <form asp-action="DeleteVisit" asp-route-id="@v.Id" method="post" style="display:inline;" onsubmit="return confirm('Delete this ANC visit?');">
+                      @Html.AntiForgeryToken()
+                      <button type="submit" class="btn small">Delete</button>
+                    </form>
+                  }
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        <h3 style="margin:0;">Appointments (@m.Appointments.Count)</h3>
+        @if (canSchedule)
+        {
+          <a class="btn teal small" style="margin-left:0;" asp-controller="Reception" asp-action="Book" asp-route-motherId="@m.Id">+ Book</a>
+        }
+      </div>
+      @if (!m.Appointments.Any())
+      {
+        <p class="muted">No appointments booked yet.</p>
+      }
+      else
+      {
+        <div class="list-stack">
+          @foreach (var a in m.Appointments.OrderByDescending(x => x.ScheduledDate))
+          {
+            <div class="list-row">
+              <div>
+                <strong>@a.Purpose</strong>
+                <small>@a.ScheduledDate.ToString("dd MMM yyyy") at @a.StartTime &bull; @a.DoctorName</small>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                <span class="pill @(a.Status == "Attended" ? "low" : a.Status == "Missed" ? "high" : "medium")" style="animation:none;">@a.Status</span>
+                @if (!User.IsInRole(Roles.Mother))
+                {
+                  <a class="btn ghost small" style="margin-left:0;" asp-controller="Consultation" asp-action="Open" asp-route-id="@a.Id">Open</a>
+                }
+              </div>
+            </div>
+          }
         </div>
       }
     </div>
-    @if (m.Deliveries.Any())
-    {
-      <div style="margin-bottom:12px;">
-        @foreach (var d in m.Deliveries.OrderByDescending(x => x.DeliveryDate))
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        <h3 style="margin:0;">Deliveries &amp; Newborns</h3>
+        @if (canEditClinical)
         {
-          <div class="list-row" style="margin-bottom:8px;">
-            <div>
-              <strong>@d.DeliveryType Delivery &mdash; @d.Outcome</strong>
-              <small>@d.DeliveryDate.ToString("dd MMM yyyy") &bull; @d.Place @(string.IsNullOrWhiteSpace(d.Complications) || d.Complications == "None" ? "" : $"• {d.Complications}")</small>
-            </div>
-            <span class="pill low">Recorded</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <a class="btn teal small" style="margin-left:0;" asp-controller="Newborns" asp-action="RecordDelivery" asp-route-motherId="@m.Id">+ Record Delivery</a>
+            <a class="btn small" style="margin-left:0;" asp-controller="Newborns" asp-action="Create" asp-route-motherId="@m.Id">+ Register Baby</a>
           </div>
         }
       </div>
-    }
-    @if (!m.Newborns.Any())
-    {
-      <p class="muted">No newborns registered under this mother yet.</p>
-    }
-    @foreach (var n in m.Newborns)
-    {
-      <div class="list-row" style="margin-bottom:8px;">
-        <div>
-          <a asp-controller="Newborns" asp-action="Details" asp-route-id="@n.Id"><strong>@n.Name</strong></a>
-          <small>Born @n.Dob.ToString("dd MMM yyyy") &bull; @n.Gender &bull; @n.BirthWeight kg @(n.ApgarScore.HasValue ? $"• APGAR {n.ApgarScore}" : "")</small>
-          @if (n.IsLowBirthWeight) { <span class="pill high" style="animation:none;margin-left:4px;">LBW</span> }
-          @if (n.IsPreterm) { <span class="pill medium" style="margin-left:4px;">Preterm</span> }
+      @if (m.Deliveries.Any())
+      {
+        <div style="margin-bottom:12px;">
+          @foreach (var d in m.Deliveries.OrderByDescending(x => x.DeliveryDate))
+          {
+            <div class="list-row" style="margin-bottom:8px;">
+              <div>
+                <strong>@d.DeliveryType Delivery &mdash; @d.Outcome</strong>
+                <small>@d.DeliveryDate.ToString("dd MMM yyyy") &bull; @d.Place @(string.IsNullOrWhiteSpace(d.Complications) || d.Complications == "None" ? "" : $"• {d.Complications}")</small>
+              </div>
+              <span class="pill low">Recorded</span>
+            </div>
+          }
         </div>
-        <a class="btn ghost small" style="margin-left:0;" asp-controller="Newborns" asp-action="Details" asp-route-id="@n.Id">Growth &amp; Vaccines</a>
-      </div>
-    }
+      }
+      @if (!m.Newborns.Any())
+      {
+        <p class="muted">No newborns registered under this mother yet.</p>
+      }
+      @foreach (var n in m.Newborns)
+      {
+        <div class="list-row" style="margin-bottom:8px;">
+          <div>
+            <a asp-controller="Newborns" asp-action="Details" asp-route-id="@n.Id"><strong>@n.Name</strong></a>
+            <small>Born @n.Dob.ToString("dd MMM yyyy") &bull; @n.Gender &bull; @n.BirthWeight kg @(n.ApgarScore.HasValue ? $"• APGAR {n.ApgarScore}" : "")</small>
+            @if (n.IsLowBirthWeight) { <span class="pill high" style="animation:none;margin-left:4px;">LBW</span> }
+            @if (n.IsPreterm) { <span class="pill medium" style="margin-left:4px;">Preterm</span> }
+          </div>
+          <a class="btn ghost small" style="margin-left:0;" asp-controller="Newborns" asp-action="Details" asp-route-id="@n.Id">Growth &amp; Vaccines</a>
+        </div>
+      }
+    </div>
   </div>
-</div>
+}

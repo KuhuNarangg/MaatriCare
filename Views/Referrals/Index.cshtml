@@ -45,6 +45,7 @@
           <th>Mother</th>
           <th>Hospital</th>
           <th>Reason &amp; Notes</th>
+          <th>Created By</th>
           <th>Status</th>
           <th>Update Status</th>
         </tr>
@@ -66,6 +67,7 @@
                 <br /><small class="muted">@r.Notes</small>
               }
             </td>
+            <td class="small muted">@(string.IsNullOrWhiteSpace(r.CreatedBy) ? "—" : r.CreatedBy)</td>
             <td><span class="pill @(r.Status == "Completed" ? "low" : r.Status == "Accepted" ? "medium" : "high")" style="animation:none;">@r.Status</span></td>
             <td style="white-space:nowrap;">
               @if (r.Status == "Pending")

@@ -1,4 +1,4 @@
-@* Index.cshtml - role-based dashboard for Admin/Doctor, HealthWorker, and Mother with Chart.js charts. *@
+@* Index.cshtml - role-based dashboard for Admin/Doctor, Nurse, and Mother with Chart.js charts. *@
 @using System.Text.Json
 @model DashboardViewModel
 @{
@@ -99,12 +99,12 @@
     }
   }
 }
-else if (Model.Role == "HealthWorker")
+else if (Model.Role == "Nurse")
 {
   <div class="dash-header">
     <div>
-      <span class="dash-eyebrow">Field operations</span>
-      <h2>Field Worker Dashboard</h2>
+      <span class="dash-eyebrow">Nursing care</span>
+      <h2>Nurse Overview</h2>
       <p>Assigned villages:
         @foreach (var v in Model.AssignedVillages)
         {
@@ -340,7 +340,7 @@ else
 }
 
 @section Scripts {
-  @if (Model.Role != "Mother" && Model.Role != "HealthWorker")
+  @if (Model.Role != "Mother" && Model.Role != "Nurse")
   {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script>

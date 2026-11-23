@@ -26,6 +26,7 @@ public class Referral
     [MaxLength(20)] public string Priority { get; set; } = "Urgent";   // Urgent, Routine
     [MaxLength(20)] public string Status { get; set; } = "Pending";    // Pending, Accepted, Completed
     [DataType(DataType.Date)] public DateTime ReferredDate { get; set; } = DateTime.Today;
+    [MaxLength(100)] public string CreatedBy { get; set; } = "Dr. Manpreet Gill (Doctor)";
     [MaxLength(400)] public string Notes { get; set; } = "";
 }
 

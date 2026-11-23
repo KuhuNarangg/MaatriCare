@@ -1,0 +1,169 @@
+@* Index.cshtml - Reception Desk with filters, day-view calendar, status workflow, and combined registration CTA. *@
+@model ReceptionDeskViewModel
+@{
+    ViewData["Title"] = "Reception Desk";
+    string ChipClass(string s) => s switch
+    {
+        "Attended" => "low",
+        "Waiting" => "medium",
+        "In Consultation" => "chip-consult",
+        "Missed" or "Cancelled" => "high",
+        _ => "chip-sched"
+    };
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Reception Desk</h2>
+    <p>Book appointments, check patients in, and manage today's clinic schedule.</p>
+  </div>
+  <div class="quick-actions">
+    <a class="btn" asp-action="RegisterAndBook">+ Register Patient &amp; Book</a>
+    <a class="btn teal" asp-action="Book">+ Book Appointment</a>
+    <a class="btn ghost" asp-controller="LivePortal" asp-action="Index">Live Portal</a>
+  </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+  <div class="card" style="background:var(--sage);color:var(--sage-ink);border-color:transparent;padding:12px 18px;">
+    @TempData["Success"]
+  </div>
+}
+
+<div class="card">
+  <h3>Today's Day-View Calendar (@DateTime.Today.ToString("ddd, dd MMM yyyy"))</h3>
+  @if (!Model.TodaysCalendar.Any())
+  {
+    <p class="muted">No appointments scheduled for today yet.</p>
+  }
+  else
+  {
+    <div class="day-calendar">
+      @foreach (var slot in Model.TodaysCalendar)
+      {
+        <div class="cal-slot @(slot.IsLiveNow ? "cal-live" : "") @(slot.Status == "Waiting" ? "cal-waiting" : "")">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+            <strong>@slot.StartTime (@slot.DurationMinutes min)</strong>
+            @if (slot.IsLiveNow) { <span class="pill high" style="animation:none;">NOW</span> }
+          </div>
+          <div style="margin:4px 0;">
+            <a asp-controller="Mothers" asp-action="Details" asp-route-id="@slot.MotherId"><strong>@slot.PatientDisplayName</strong></a>
+          </div>
+          <div class="small muted">@slot.DoctorName &bull; @slot.Purpose</div>
+          <div style="margin-top:8px;">
+            <span class="pill @ChipClass(slot.Status)" style="animation:none;">@slot.Status</span>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<form method="get" class="card filter-bar">
+  <select name="range">
+    <option value="today" selected="@(Model.Range == "today")">Today</option>
+    <option value="week" selected="@(Model.Range == "week")">Next 7 Days</option>
+    <option value="all" selected="@(Model.Range == "all")">All Dates</option>
+  </select>
+
+  <select name="status">
+    <option value="">All Statuses</option>
+    @foreach (var st in new[] { "Scheduled", "Waiting", "In Consultation", "Attended", "Missed", "Cancelled" })
+    {
+      <option value="@st" selected="@(Model.Status == st)">@st</option>
+    }
+  </select>
+
+  <select name="doctor">
+    <option value="">All Doctors</option>
+    @foreach (var d in Model.Doctors)
+    {
+      <option value="@d.Username" selected="@(Model.Doctor == d.Username)">@(string.IsNullOrWhiteSpace(d.FullName) ? d.Username : d.FullName)</option>
+    }
+  </select>
+
+  <button type="submit" class="btn teal">Filter</button>
+  <a asp-action="Index" class="btn ghost">Reset</a>
+</form>
+
+<div class="card">
+  <h3>Appointments (@Model.Appointments.Count)</h3>
+  @if (!Model.Appointments.Any())
+  {
+    <p class="muted">No appointments match the selected filters.</p>
+  }
+  else
+  {
+    <table>
+      <thead>
+        <tr>
+          <th>Date &amp; Time</th>
+          <th>Patient</th>
+          <th>Doctor</th>
+          <th>Reason</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var a in Model.Appointments)
+        {
+          <tr>
+            <td>
+              <strong>@a.ScheduledDate.ToString("dd MMM yyyy")</strong><br />
+              <small class="muted">@a.StartTime (@a.DurationMinutes min)</small>
+            </td>
+            <td>
+              <a asp-controller="Mothers" asp-action="Details" asp-route-id="@a.MotherId"><strong>@a.PatientDisplayName</strong></a><br />
+              <small class="muted">@a.Mother?.Village &bull; @a.Mother?.Phone</small>
+            </td>
+            <td>@a.DoctorName</td>
+            <td>
+              @a.Purpose
+              @if (!string.IsNullOrWhiteSpace(a.CreatedBy)) { <br /><small class="muted">By @a.CreatedBy</small> }
+            </td>
+            <td><span class="pill @ChipClass(a.Status)" style="animation:none;">@a.Status</span></td>
+            <td style="white-space:nowrap;">
+              @if (a.Status == "Scheduled")
+              {
+                <form asp-action="SetStatus" method="post" style="display:inline;">
+                  @Html.AntiForgeryToken()
+                  <input type="hidden" name="id" value="@a.Id" />
+                  <input type="hidden" name="status" value="Waiting" />
+                  <button type="submit" class="btn teal small" style="margin-left:0;">Check In</button>
+                </form>
+              }
+              @if (a.Status is "Scheduled" or "Waiting" or "In Consultation")
+              {
+                <form asp-action="SetStatus" method="post" style="display:inline;">
+                  @Html.AntiForgeryToken()
+                  <input type="hidden" name="id" value="@a.Id" />
+                  <input type="hidden" name="status" value="Attended" />
+                  <button type="submit" class="btn ghost small">Attended</button>
+                </form>
+                <form asp-action="SetStatus" method="post" style="display:inline;">
+                  @Html.AntiForgeryToken()
+                  <input type="hidden" name="id" value="@a.Id" />
+                  <input type="hidden" name="status" value="Missed" />
+                  <button type="submit" class="btn small">Missed</button>
+                </form>
+              }
+              <a class="btn ghost small" asp-action="Reschedule" asp-route-id="@a.Id">Reschedule</a>
+              @if (a.Status != "Cancelled" && a.Status != "Attended")
+              {
+                <form asp-action="SetStatus" method="post" style="display:inline;" onsubmit="return confirm('Cancel this appointment?');">
+                  @Html.AntiForgeryToken()
+                  <input type="hidden" name="id" value="@a.Id" />
+                  <input type="hidden" name="status" value="Cancelled" />
+                  <button type="submit" class="btn ghost small">Cancel</button>
+                </form>
+              }
+              <a class="btn ghost small" asp-controller="Consultation" asp-action="Open" asp-route-id="@a.Id">View</a>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

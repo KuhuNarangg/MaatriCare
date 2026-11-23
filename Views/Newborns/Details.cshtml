@@ -3,7 +3,7 @@
 @model Newborn
 @{
     ViewData["Title"] = Model.Name;
-    var isStaff = !User.IsInRole("Mother");
+    var isStaff = PermissionService.CanEditClinicalCare(User);
     var orderedVax = Model.Vaccines.OrderBy(v => v.DueDate).ToList();
     var orderedGrowth = Model.GrowthRecords.OrderBy(g => g.RecordedDate).ToList();
 

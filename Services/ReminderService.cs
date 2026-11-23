@@ -121,16 +121,32 @@ public class ReminderService
         return created;
     }
 
+    public async Task MarkContactedAsync(string targetKey, string contactedBy, string note)
+    {
+        db.FollowUpContacts.Add(new FollowUpContact
+        {
+            TargetKey = targetKey,
+            ContactedBy = contactedBy ?? "staff",
+            Note = string.IsNullOrWhiteSpace(note) ? "Patient contacted by phone" : note.Trim(),
+            ContactedAt = DateTime.Now
+        });
+        await db.SaveChangesAsync();
+    }
+
     public async Task<FollowUpPageViewModel> GetFollowUpsAsync(string tab = "today")
     {
         var today = DateTime.Today;
         var nextTwoWeeks = today.AddDays(14);
         var allTasks = new List<FollowUpTaskRow>();
+        var contacts = await db.FollowUpContacts
+            .OrderByDescending(c => c.ContactedAt)
+            .ToListAsync();
+        var latestByKey = contacts.GroupBy(c => c.TargetKey).ToDictionary(g => g.Key, g => g.First());
 
-        // Scheduled appointments
+        // Scheduled & Missed appointments (Missed automatically appear in Overdue follow-ups!)
         var appts = await db.Appointments
             .Include(a => a.Mother)
-            .Where(a => a.Status == "Scheduled" || a.Status == "Missed")
+            .Where(a => a.Status == "Scheduled" || a.Status == "Waiting" || a.Status == "Missed")
             .ToListAsync();
 
         foreach (var a in appts)
@@ -138,18 +154,23 @@ public class ReminderService
             string status = a.Status == "Missed" || a.ScheduledDate.Date < today
                 ? "Overdue"
                 : a.ScheduledDate.Date == today ? "Today" : "Upcoming";
+            string key = $"appt-{a.Id}";
+            latestByKey.TryGetValue(key, out var c);
 
             allTasks.Add(new FollowUpTaskRow
             {
-                Kind = "Appointment",
+                TargetKey = key,
+                Kind = a.Status == "Missed" ? "Missed Appt" : "Appointment",
                 AppointmentId = a.Id,
                 PersonName = a.Mother?.Name ?? "",
                 Village = a.Mother?.Village ?? "",
                 Phone = a.Mother?.Phone ?? "",
-                Description = a.Purpose,
+                Description = $"{a.Purpose} ({a.StartTime})",
                 DueDate = a.ScheduledDate,
                 Status = status,
-                DetailUrl = $"/Mothers/Details/{a.MotherId}"
+                DetailUrl = $"/Mothers/Details/{a.MotherId}",
+                LastContactNote = c != null ? $"{c.Note} (by {c.ContactedBy})" : null,
+                LastContactedAt = c?.ContactedAt
             });
         }
 
@@ -162,8 +183,11 @@ public class ReminderService
                            (last != null && (today - last.VisitDate).TotalDays > 45 && m.Week < 38);
             if (overdue)
             {
+                string key = $"anc-{m.Id}";
+                latestByKey.TryGetValue(key, out var c);
                 allTasks.Add(new FollowUpTaskRow
                 {
+                    TargetKey = key,
                     Kind = "ANC Visit",
                     PersonName = m.Name,
                     Village = m.Village,
@@ -171,7 +195,9 @@ public class ReminderService
                     Description = last == null ? $"No ANC visit yet (Week {m.Week})" : $"Last ANC visit {(int)(today - last.VisitDate).TotalDays} days ago",
                     DueDate = last?.VisitDate.AddDays(45) ?? today,
                     Status = "Overdue",
-                    DetailUrl = $"/Mothers/Details/{m.Id}"
+                    DetailUrl = $"/Mothers/Details/{m.Id}",
+                    LastContactNote = c != null ? $"{c.Note} (by {c.ContactedBy})" : null,
+                    LastContactedAt = c?.ContactedAt
                 });
             }
         }
@@ -185,8 +211,11 @@ public class ReminderService
         foreach (var v in vax)
         {
             string status = v.DueDate.Date < today ? "Overdue" : v.DueDate.Date == today ? "Today" : "Upcoming";
+            string key = $"vax-{v.Id}";
+            latestByKey.TryGetValue(key, out var c);
             allTasks.Add(new FollowUpTaskRow
             {
+                TargetKey = key,
                 Kind = "Vaccine",
                 VaccineId = v.Id,
                 PersonName = v.Newborn?.Name ?? "",
@@ -195,7 +224,9 @@ public class ReminderService
                 Description = $"Vaccine: {v.Name}",
                 DueDate = v.DueDate,
                 Status = status,
-                DetailUrl = $"/Newborns/Details/{v.NewbornId}"
+                DetailUrl = $"/Newborns/Details/{v.NewbornId}",
+                LastContactNote = c != null ? $"{c.Note} (by {c.ContactedBy})" : null,
+                LastContactedAt = c?.ContactedAt
             });
         }
 

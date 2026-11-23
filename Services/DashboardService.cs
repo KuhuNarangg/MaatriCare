@@ -50,8 +50,8 @@ public class DashboardService
             return vm;
         }
 
-        // HealthWorker role: focus on assigned villages
-        if (role == "HealthWorker")
+        // Nurse role: focus on assigned villages
+        if (role == "Nurse")
         {
             var user = await db.Users.FirstOrDefaultAsync(u => u.Username == username);
             var villages = (user?.AssignedVillages ?? "Phagwara,Nangal")

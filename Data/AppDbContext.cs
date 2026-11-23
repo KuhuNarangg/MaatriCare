@@ -18,4 +18,8 @@ public class AppDbContext : DbContext
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<Referral> Referrals { get; set; }
     public DbSet<HealthTip> HealthTips { get; set; }
+    public DbSet<VisitRecord> VisitRecords { get; set; }
+    public DbSet<PrescriptionItem> PrescriptionItems { get; set; }
+    public DbSet<FollowUpContact> FollowUpContacts { get; set; }
+    public DbSet<AuditLog> AuditLogs { get; set; }
 }

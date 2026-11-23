@@ -1,11 +1,11 @@
-// ReferralsController.cs - refer high-risk mothers to hospitals and track Pending/Accepted/Completed status.
+// ReferralsController.cs - Admin & Receptionist only hospital referrals list and status updates.
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MaatriCare.Services;
 using MaatriCare.ViewModels;
 namespace MaatriCare.Controllers;
 
-[Authorize(Roles = "Admin,Doctor,HealthWorker")]
+[Authorize(Roles = "Admin,Receptionist")]
 public class ReferralsController : Controller
 {
     private readonly ReferralService referrals;
@@ -36,7 +36,7 @@ public class ReferralsController : Controller
             ViewBag.Mothers = await referrals.GetMothersAsync();
             return View(vm);
         }
-        await referrals.CreateAsync(vm);
+        await referrals.CreateAsync(vm, User);
         TempData["Success"] = "Hospital referral created.";
         return RedirectToAction(nameof(Index));
     }
@@ -46,7 +46,7 @@ public class ReferralsController : Controller
     public async Task<IActionResult> UpdateStatus(int id, string status)
     {
         if (status != "Pending" && status != "Accepted" && status != "Completed") return BadRequest();
-        if (!await referrals.UpdateStatusAsync(id, status)) return NotFound();
+        if (!await referrals.UpdateStatusAsync(id, status, User)) return NotFound();
         TempData["Success"] = $"Referral marked as {status}.";
         return RedirectToAction(nameof(Index));
     }

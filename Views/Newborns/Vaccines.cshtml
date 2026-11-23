@@ -65,7 +65,7 @@
             <td>@v.DueDate.ToString("dd MMM yyyy")</td>
             <td><span class="pill @(v.Status == "Given" ? "low" : v.Status == "Overdue" ? "high" : "medium")" style="animation:none;">@v.Status</span></td>
             <td>
-              @if (v.Status != "Given")
+              @if (v.Status != "Given" && PermissionService.CanEditClinicalCare(User))
               {
                 <form asp-action="Give" asp-route-id="@v.Id" method="post" class="inline-give">
                   @Html.AntiForgeryToken()
@@ -75,6 +75,10 @@
                   <input type="text" name="batchNumber" placeholder="Batch #" />
                   <button type="submit" class="btn small" style="margin-left:0;">Mark Given</button>
                 </form>
+              }
+              else if (v.Status != "Given")
+              {
+                <span class="small muted">Read-only</span>
               }
               else
               {

@@ -1,0 +1,83 @@
+@* Details.cshtml - full VisitRecord view showing vitals, doctor/nurse notes with author timestamps, and prescriptions. *@
+@model VisitRecord
+@{
+    ViewData["Title"] = $"Visit Record — {Model.Mother?.Name}";
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Visit Record &mdash; @Model.Mother?.Name</h2>
+    <p>Recorded on <strong>@Model.VisitDate.ToString("dd MMM yyyy, hh:mm tt")</strong> &bull; @Model.Mother?.Village @(Model.IsDraft ? "• Draft" : "• Finalized")</p>
+  </div>
+  <div class="quick-actions">
+    <a class="btn" asp-action="Print" asp-route-id="@Model.Id" target="_blank">Print Prescription</a>
+    <a class="btn ghost" asp-controller="Mothers" asp-action="Details" asp-route-id="@Model.MotherId" asp-route-tab="records">&larr; Back to Patient Records</a>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Vitals Recorded</h3>
+  <div class="kpi-grid" style="margin-bottom:0;">
+    <div class="kpi-card"><span class="kpi-label">Blood Pressure</span><span class="kpi-val" style="font-size:1.4rem;">@(Model.Systolic.HasValue ? $"{Model.Systolic}/{Model.Diastolic}" : "—")</span></div>
+    <div class="kpi-card"><span class="kpi-label">Hemoglobin (Hb)</span><span class="kpi-val" style="font-size:1.4rem;">@(Model.Hb.HasValue ? $"{Model.Hb} g/dL" : "—")</span></div>
+    <div class="kpi-card"><span class="kpi-label">Blood Sugar</span><span class="kpi-val" style="font-size:1.4rem;">@(Model.BloodSugar.HasValue ? $"{Model.BloodSugar} mg/dL" : "—")</span></div>
+    <div class="kpi-card"><span class="kpi-label">Weight</span><span class="kpi-val" style="font-size:1.4rem;">@(Model.WeightKg.HasValue ? $"{Model.WeightKg:0.0} kg" : "—")</span></div>
+    <div class="kpi-card"><span class="kpi-label">Temp / Pulse</span><span class="kpi-val" style="font-size:1.25rem;">@(Model.TemperatureF.HasValue ? $"{Model.TemperatureF}°F" : "—") / @(Model.PulseBpm.HasValue ? $"{Model.PulseBpm} bpm" : "—")</span></div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h3>Doctor's Assessment</h3>
+    @if (!string.IsNullOrWhiteSpace(Model.DoctorAuthorName))
+    {
+      <p class="small muted">Authored by <strong>@Model.DoctorAuthorName</strong> (@Model.DoctorAuthorRole) &bull; @Model.DoctorUpdatedAt?.ToString("dd MMM yyyy, hh:mm tt")</p>
+    }
+    <p><strong>Symptoms:</strong> @(string.IsNullOrWhiteSpace(Model.Symptoms) ? "—" : Model.Symptoms)</p>
+    <p><strong>Diagnosis:</strong> @(string.IsNullOrWhiteSpace(Model.Diagnosis) ? "—" : Model.Diagnosis)</p>
+    <p><strong>Medical Notes:</strong> @(string.IsNullOrWhiteSpace(Model.MedicalNotes) ? "—" : Model.MedicalNotes)</p>
+    <p><strong>Tests Advised:</strong> @(string.IsNullOrWhiteSpace(Model.TestsAdvised) ? "—" : Model.TestsAdvised)</p>
+    <p><strong>Advice:</strong> @(string.IsNullOrWhiteSpace(Model.Advice) ? "—" : Model.Advice)</p>
+    <p><strong>Next Follow-Up:</strong> @(Model.NextFollowUpDate.HasValue ? Model.NextFollowUpDate.Value.ToString("dd MMM yyyy") : "—")</p>
+  </div>
+
+  <div class="card">
+    <h3>Nurse Notes &amp; Clinic Care</h3>
+    @if (!string.IsNullOrWhiteSpace(Model.NurseAuthorName))
+    {
+      <p class="small muted">Authored by <strong>@Model.NurseAuthorName</strong> (@Model.NurseAuthorRole) &bull; @Model.NurseUpdatedAt?.ToString("dd MMM yyyy, hh:mm tt")</p>
+    }
+    <p><strong>Nurse Notes:</strong> @(string.IsNullOrWhiteSpace(Model.NurseNotes) ? "—" : Model.NurseNotes)</p>
+    <p><strong>Medication Administered:</strong> @(string.IsNullOrWhiteSpace(Model.MedicationAdministered) ? "—" : Model.MedicationAdministered)</p>
+    <p><strong>Vaccines Given:</strong> @(string.IsNullOrWhiteSpace(Model.VaccinesGivenSummary) ? "—" : Model.VaccinesGivenSummary)</p>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Prescription (@Model.Prescriptions.Count)</h3>
+  @if (!Model.Prescriptions.Any())
+  {
+    <p class="muted">No medications prescribed during this visit.</p>
+  }
+  else
+  {
+    <table>
+      <thead>
+        <tr><th>Medicine</th><th>Dose</th><th>Frequency</th><th>Duration</th><th>Instructions</th><th>Prescribed By</th></tr>
+      </thead>
+      <tbody>
+        @foreach (var rx in Model.Prescriptions)
+        {
+          <tr>
+            <td><strong>@rx.MedicineName</strong></td>
+            <td>@rx.Dose</td>
+            <td>@rx.Frequency</td>
+            <td>@rx.Duration</td>
+            <td>@rx.Instructions</td>
+            <td class="small muted">@rx.AuthorName (@rx.AuthorRole)<br />@rx.CreatedAt.ToString("dd MMM, hh:mm tt")</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

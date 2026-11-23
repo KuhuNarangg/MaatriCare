@@ -1,0 +1,58 @@
+@* Reschedule.cshtml - Reception Desk form to reschedule an appointment's date, time, doctor, or duration. *@
+@model AppointmentFormViewModel
+@{
+    ViewData["Title"] = "Reschedule Appointment";
+    var doctors = ViewBag.Doctors as List<AppUser> ?? new();
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Reschedule Appointment</h2>
+    <p>Patient: <strong>@ViewBag.MotherName</strong></p>
+  </div>
+  <a class="btn ghost" asp-action="Index">&larr; Back to Reception Desk</a>
+</div>
+
+<form method="post" class="card form" style="max-width:580px;" novalidate>
+  @Html.AntiForgeryToken()
+  <input type="hidden" asp-for="Id" />
+  <input type="hidden" asp-for="MotherId" />
+  <div asp-validation-summary="All" class="err"></div>
+
+  <label asp-for="DoctorUsername">Doctor</label>
+  <select asp-for="DoctorUsername">
+    @foreach (var d in doctors)
+    {
+      <option value="@d.Username">@(string.IsNullOrWhiteSpace(d.FullName) ? d.Username : d.FullName)</option>
+    }
+  </select>
+
+  <div class="grid-2">
+    <div>
+      <label asp-for="ScheduledDate">New Date</label>
+      <input asp-for="ScheduledDate" type="date" />
+    </div>
+    <div>
+      <label asp-for="StartTime">New Time</label>
+      <input asp-for="StartTime" type="time" />
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <label asp-for="DurationMinutes">Duration (min)</label>
+      <input asp-for="DurationMinutes" type="number" min="5" max="120" />
+    </div>
+    <div>
+      <label asp-for="Purpose">Reason</label>
+      <input asp-for="Purpose" />
+    </div>
+  </div>
+
+  <label asp-for="Notes">Notes</label>
+  <input asp-for="Notes" />
+
+  <div style="margin-top:20px;">
+    <button type="submit" class="btn teal">Save Rescheduled Slot</button>
+  </div>
+</form>

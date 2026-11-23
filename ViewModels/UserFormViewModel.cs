@@ -18,7 +18,7 @@ public class UserFormViewModel
     public string Phone { get; set; }
 
     [Required(ErrorMessage = "Please select a role.")]
-    public string Role { get; set; } = "HealthWorker";
+    public string Role { get; set; } = "Nurse";
 
     [DataType(DataType.Password)]
     public string Password { get; set; }

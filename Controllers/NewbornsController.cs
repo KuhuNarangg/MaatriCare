@@ -1,4 +1,4 @@
-// NewbornsController.cs - delivery records, newborn profiles, growth tracking, and clinic-wide vaccine tracker.
+// NewbornsController.cs - delivery records, newborn profiles, growth tracking, and vaccine tracker with strict role checks.
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,9 +10,15 @@ namespace MaatriCare.Controllers;
 public class NewbornsController : Controller
 {
     private readonly NewbornService newborns;
-    public NewbornsController(NewbornService newborns) { this.newborns = newborns; }
+    private readonly AuditService audit;
 
-    [Authorize(Roles = "Admin,Doctor,HealthWorker")]
+    public NewbornsController(NewbornService newborns, AuditService audit)
+    {
+        this.newborns = newborns;
+        this.audit = audit;
+    }
+
+    [Authorize(Roles = "Admin,Doctor,Nurse")]
     public async Task<IActionResult> RecordDelivery(int motherId)
     {
         var m = await newborns.GetMotherAsync(motherId);
@@ -22,18 +28,19 @@ public class NewbornsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Admin,Doctor,HealthWorker")]
+    [Authorize(Roles = "Admin,Doctor,Nurse")]
     public async Task<IActionResult> RecordDelivery(DeliveryFormViewModel vm)
     {
         if (!ModelState.IsValid) return View(vm);
         int deliveryId = await newborns.RecordDeliveryAsync(vm);
+        await audit.LogAsync(User, "Create", "Delivery", deliveryId, $"Recorded {vm.DeliveryType} delivery for Mother #{vm.MotherId}");
         TempData["Success"] = "Delivery recorded successfully.";
         if (vm.RegisterBabyNext && vm.Outcome != "Stillbirth")
             return RedirectToAction(nameof(Create), new { motherId = vm.MotherId, deliveryId });
         return RedirectToAction("Details", "Mothers", new { id = vm.MotherId });
     }
 
-    [Authorize(Roles = "Admin,Doctor,HealthWorker")]
+    [Authorize(Roles = "Admin,Doctor,Nurse")]
     public async Task<IActionResult> Create(int motherId, int? deliveryId = null)
     {
         var m = await newborns.GetMotherAsync(motherId);
@@ -51,7 +58,7 @@ public class NewbornsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Admin,Doctor,HealthWorker")]
+    [Authorize(Roles = "Admin,Doctor,Nurse")]
     public async Task<IActionResult> Create(NewbornFormViewModel vm)
     {
         if (!ModelState.IsValid)
@@ -60,6 +67,7 @@ public class NewbornsController : Controller
             return View(vm);
         }
         int id = await newborns.CreateNewbornAsync(vm);
+        await audit.LogAsync(User, "Create", "Newborn", id, $"Registered newborn {vm.Name} ({vm.BirthWeight} kg)");
         TempData["Success"] = $"{vm.Name} registered with 7 UIP vaccine milestones.";
         return RedirectToAction(nameof(Details), new { id });
     }
@@ -69,7 +77,7 @@ public class NewbornsController : Controller
         var baby = await newborns.GetNewbornDetailsAsync(id);
         if (baby == null) return NotFound();
 
-        if (User.IsInRole("Mother"))
+        if (User.IsInRole(Roles.Mother))
         {
             var myId = User.FindFirstValue("MotherId");
             if (myId != baby.MotherId.ToString()) return Forbid();
@@ -79,12 +87,13 @@ public class NewbornsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Admin,Doctor,HealthWorker")]
+    [Authorize(Roles = "Admin,Doctor,Nurse")]
     public async Task<IActionResult> Give(int id, DateTime? givenDate, string batchNumber, string returnTo = null, string filter = null)
     {
         var newbornId = await newborns.MarkVaccineGivenAsync(id, givenDate, batchNumber);
         if (newbornId == null) return NotFound();
 
+        await audit.LogAsync(User, "Edit", "Vaccine", id, $"Marked vaccine #{id} given (Batch {batchNumber})");
         TempData["Success"] = "Vaccination marked as given.";
         if (returnTo == "tracker")
             return RedirectToAction(nameof(Vaccines), new { filter });
@@ -93,7 +102,7 @@ public class NewbornsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Admin,Doctor,HealthWorker")]
+    [Authorize(Roles = "Admin,Doctor,Nurse")]
     public async Task<IActionResult> AddGrowth(GrowthRecordViewModel vm)
     {
         if (!ModelState.IsValid)
@@ -102,11 +111,12 @@ public class NewbornsController : Controller
             return RedirectToAction(nameof(Details), new { id = vm.NewbornId });
         }
         await newborns.AddGrowthRecordAsync(vm);
+        await audit.LogAsync(User, "Create", "GrowthRecord", vm.NewbornId, $"Logged {vm.WeightKg} kg / {vm.HeightCm} cm for Newborn #{vm.NewbornId}");
         TempData["Success"] = "Growth measurement recorded.";
         return RedirectToAction(nameof(Details), new { id = vm.NewbornId });
     }
 
-    [Authorize(Roles = "Admin,Doctor,HealthWorker")]
+    [Authorize(Roles = "Admin,Doctor,Nurse,Receptionist")]
     public async Task<IActionResult> Vaccines(string filter = "pending")
     {
         var vm = await newborns.GetVaccineTrackerAsync(filter);

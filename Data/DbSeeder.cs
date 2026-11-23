@@ -67,15 +67,60 @@ public static class DbSeeder
         db.Mothers.AddRange(mothers);
         db.SaveChanges();
 
-        // Seeded appointments (Scheduled, Attended, Missed)
-        db.Appointments.AddRange(
-            new Appointment { MotherId = mothers[0].Id, ScheduledDate = today.AddDays(3), Purpose = "ANC 2 Routine Check-up", Status = "Scheduled", Notes = "Check Hb & weight gain" },
-            new Appointment { MotherId = mothers[1].Id, ScheduledDate = today.AddDays(2), Purpose = "Pre-delivery Assessment", Status = "Scheduled", Notes = "Confirm hospital bag & transport" },
-            new Appointment { MotherId = mothers[2].Id, ScheduledDate = today, Purpose = "High-Risk BP Follow-Up", Status = "Scheduled", Notes = "Doctor review required" },
-            new Appointment { MotherId = mothers[4].Id, ScheduledDate = today.AddDays(-2), Purpose = "Specialist Referral Review", Status = "Missed", Notes = "Did not arrive; call family" },
-            new Appointment { MotherId = mothers[9].Id, ScheduledDate = today.AddDays(1), Purpose = "Severe Anaemia Follow-Up", Status = "Scheduled", Notes = "Repeat Hb test" },
-            new Appointment { MotherId = mothers[12].Id, ScheduledDate = today.AddDays(-9), Purpose = "ANC 2 Check-up", Status = "Attended", Notes = "Completed on time" }
-        );
+        // Seeded appointments with times, doctor, status flow (Scheduled, Waiting, In Consultation, Attended, Missed)
+        var now = DateTime.Now;
+        var slotNow = new DateTime(now.Year, now.Month, now.Day, now.Hour, (now.Minute / 10) * 10, 0).ToString("HH:mm");
+        var slotNext = now.AddMinutes(25).ToString("HH:mm");
+        var slotLater = now.AddMinutes(55).ToString("HH:mm");
+
+        var seededAppts = new List<Appointment>
+        {
+            new() { MotherId = mothers[2].Id, DoctorUsername = "doctor", DoctorName = "Dr. Manpreet Gill", ScheduledDate = today, StartTime = slotNow, DurationMinutes = 20, Purpose = "High-Risk BP Follow-Up", Status = "Waiting", CreatedBy = "receptionist", CheckedInAt = now.AddMinutes(-5), Notes = "Checked in at reception; priority review" },
+            new() { MotherId = mothers[0].Id, DoctorUsername = "doctor", DoctorName = "Dr. Manpreet Gill", ScheduledDate = today, StartTime = slotNext, DurationMinutes = 20, Purpose = "ANC 2 Routine Check-up", Status = "Scheduled", CreatedBy = "receptionist", Notes = "Check Hb & weight gain" },
+            new() { MotherId = mothers[9].Id, DoctorUsername = "doctor", DoctorName = "Dr. Manpreet Gill", ScheduledDate = today, StartTime = slotLater, DurationMinutes = 20, Purpose = "Severe Anaemia Follow-Up", Status = "Scheduled", CreatedBy = "receptionist", Notes = "Repeat Hb test" },
+            new() { MotherId = mothers[1].Id, DoctorUsername = "doctor", DoctorName = "Dr. Manpreet Gill", ScheduledDate = today.AddDays(2), StartTime = "10:30", DurationMinutes = 20, Purpose = "Pre-delivery Assessment", Status = "Scheduled", CreatedBy = "receptionist", Notes = "Confirm hospital bag & transport" },
+            new() { MotherId = mothers[4].Id, DoctorUsername = "doctor", DoctorName = "Dr. Manpreet Gill", ScheduledDate = today.AddDays(-1), StartTime = "11:00", DurationMinutes = 20, Purpose = "Specialist Referral Review", Status = "Missed", CreatedBy = "receptionist", Notes = "Did not arrive; follow-up call needed" },
+            new() { MotherId = mothers[12].Id, DoctorUsername = "doctor", DoctorName = "Dr. Manpreet Gill", ScheduledDate = today, StartTime = "09:00", DurationMinutes = 20, Purpose = "ANC 2 Check-up", Status = "Attended", CreatedBy = "receptionist", Notes = "Completed on time" }
+        };
+        db.Appointments.AddRange(seededAppts);
+        db.SaveChanges();
+
+        // Seeded VisitRecord + Prescriptions so Records tab and Print Prescription work out of the box
+        var vr1 = new VisitRecord
+        {
+            MotherId = mothers[12].Id,
+            AppointmentId = seededAppts[5].Id,
+            VisitDate = today.AddHours(9).AddMinutes(15),
+            IsDraft = false,
+            Systolic = 116,
+            Diastolic = 74,
+            WeightKg = 58.0,
+            Hb = 11.9,
+            BloodSugar = 91,
+            TemperatureF = 98.4,
+            PulseBpm = 78,
+            Symptoms = "Mild fatigue in evenings; good fetal movements.",
+            Diagnosis = "Normal 26-week intrauterine pregnancy",
+            MedicalNotes = "Fundal height corresponds to gestational age. Continue routine antenatal supplements.",
+            TestsAdvised = "Repeat CBC and OGTT at 28 weeks",
+            Advice = "Iron-rich diet, 8 hours rest, hydration, report any headache or swelling immediately.",
+            NextFollowUpDate = today.AddDays(21),
+            DoctorAuthorName = "Dr. Manpreet Gill",
+            DoctorAuthorRole = "Doctor",
+            DoctorUpdatedAt = today.AddHours(9).AddMinutes(20),
+            NurseNotes = "Vitals recorded; counseled on IFA tablet timing after meals.",
+            MedicationAdministered = "TT-2 Booster administered (Left Deltoid)",
+            NurseAuthorUsername = "nurse",
+            NurseAuthorName = "Gurpreet Kaur (Nurse)",
+            NurseAuthorRole = "Nurse",
+            NurseUpdatedAt = today.AddHours(9).AddMinutes(10)
+        };
+        vr1.Prescriptions.AddRange(new[]
+        {
+            new PrescriptionItem { MedicineName = "Ferrous Sulfate + Folic Acid (IFA)", Dose = "100mg / 500mcg", Frequency = "Once daily", Duration = "30 days", Instructions = "After dinner with lemon water", AuthorName = "Dr. Manpreet Gill", AuthorRole = "Doctor" },
+            new PrescriptionItem { MedicineName = "Calcium Carbonate + Vitamin D3", Dose = "500mg", Frequency = "Twice daily", Duration = "30 days", Instructions = "After breakfast and lunch (not with IFA)", AuthorName = "Dr. Manpreet Gill", AuthorRole = "Doctor" }
+        });
+        db.VisitRecords.Add(vr1);
 
         // Seeded deliveries linked to mothers & newborns
         var d1 = new Delivery { MotherId = mothers[1].Id, DeliveryDate = today.AddDays(-50), DeliveryType = "Normal", Place = "Phagwara PHC", Outcome = "Live Birth", Complications = "None" };
@@ -138,8 +183,15 @@ public static class DbSeeder
         db.Users.AddRange(
             new AppUser { Username = "admin", FullName = "Dr. Rajeshwar Singh", Phone = "9876500100", PasswordHash = Hash("Pass@123"), Role = "Admin", IsActive = true },
             new AppUser { Username = "doctor", FullName = "Dr. Manpreet Gill", Phone = "9876500101", PasswordHash = Hash("Pass@123"), Role = "Doctor", IsActive = true },
-            new AppUser { Username = "worker", FullName = "Gurpreet Kaur (ANM)", Phone = "9876500102", PasswordHash = Hash("Pass@123"), Role = "HealthWorker", IsActive = true, AssignedVillages = "Phagwara,Nangal" },
+            new AppUser { Username = "nurse", FullName = "Gurpreet Kaur (Nurse)", Phone = "9876500102", PasswordHash = Hash("Pass@123"), Role = "Nurse", IsActive = true, AssignedVillages = "Phagwara,Nangal" },
+            new AppUser { Username = "receptionist", FullName = "Priya Sharma", Phone = "9876500103", PasswordHash = Hash("Pass@123"), Role = "Receptionist", IsActive = true },
             new AppUser { Username = "mother", FullName = "Anita Rani", Phone = "9876500004", PasswordHash = Hash("Pass@123"), Role = "Mother", IsActive = true, MotherId = mothers[1].Id }
+        );
+
+        db.AuditLogs.AddRange(
+            new AuditLog { Username = "receptionist", Role = "Receptionist", Action = "Create", EntityType = "Appointment", EntityId = seededAppts[0].Id, Details = "Booked High-Risk BP Follow-Up for Kiranpreet Kaur", Timestamp = now.AddMinutes(-30) },
+            new AuditLog { Username = "doctor", Role = "Doctor", Action = "Create", EntityType = "VisitRecord", EntityId = 1, Details = "Submitted consultation & 2-item prescription for Jaswinder Kaur", Timestamp = today.AddHours(9).AddMinutes(20) },
+            new AuditLog { Username = "nurse", Role = "Nurse", Action = "Edit", EntityType = "VisitRecord", EntityId = 1, Details = "Logged vitals and TT-2 booster for Jaswinder Kaur", Timestamp = today.AddHours(9).AddMinutes(10) }
         );
 
         // Seeded hospital referrals for high-risk mothers

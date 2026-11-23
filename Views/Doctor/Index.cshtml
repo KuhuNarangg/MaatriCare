@@ -1,0 +1,99 @@
+@* Index.cshtml - Doctor Portal ("My appointments today") with live 10-second polling queue. *@
+@model List<Appointment>
+@{
+    ViewData["Title"] = "Doctor Portal";
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Doctor Portal &mdash; My Appointments Today</h2>
+    <p>Auto-refreshes every 10 seconds when Reception checks patients in or updates status. <span id="lastSync" class="small muted"></span></p>
+  </div>
+  <div class="quick-actions">
+    <a class="btn ghost" asp-controller="Mothers" asp-action="Index">All Patients</a>
+  </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+  <div class="card" style="background:var(--sage);color:var(--sage-ink);border-color:transparent;padding:12px 18px;">
+    @TempData["Success"]
+  </div>
+}
+
+<div class="card">
+  <div id="doctorQueueContainer">
+    @if (!Model.Any())
+    {
+      <div class="empty-state">
+        <h3>No appointments scheduled today</h3>
+        <p>New appointments booked at Reception will appear here automatically within 10 seconds.</p>
+      </div>
+    }
+    else
+    {
+      <div class="list-stack">
+        @foreach (var a in Model)
+        {
+          string chip = a.Status == "Attended" ? "low" : a.Status == "Waiting" ? "medium" : a.Status == "In Consultation" ? "chip-consult" : a.Status == "Missed" ? "high" : "chip-sched";
+          <div class="list-row @(a.Status == "Waiting" ? "queue-waiting" : "") @(a.IsLiveNow ? "queue-now" : "")">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+                <strong>@a.PatientDisplayName</strong>
+                @if (a.IsLiveNow) { <span class="pill high" style="animation:none;">NOW</span> }
+                <span class="pill @chip" style="animation:none;">@a.Status</span>
+              </div>
+              <small>@a.ScheduledDate.ToString("dd MMM yyyy") at <strong>@a.StartTime</strong> (@a.DurationMinutes min) &bull; @a.Mother?.Village &bull; @a.Purpose</small>
+            </div>
+            <div style="white-space:nowrap;">
+              <a class="btn teal small" style="margin-left:0;" asp-controller="Consultation" asp-action="Open" asp-route-id="@a.Id">
+                @(a.Status == "Attended" ? "View Record" : "Open Consultation")
+              </a>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+@section Scripts {
+  <script>
+    function chipClass(s) {
+      if (s === 'Attended') return 'low';
+      if (s === 'Waiting') return 'medium';
+      if (s === 'In Consultation') return 'chip-consult';
+      if (s === 'Missed' || s === 'Cancelled') return 'high';
+      return 'chip-sched';
+    }
+    async function pollDoctorQueue() {
+      try {
+        const res = await fetch('/Consultation/QueueJson?mode=doctor', { cache: 'no-store' });
+        if (!res.ok) return;
+        const items = await res.json();
+        const box = document.getElementById('doctorQueueContainer');
+        if (!items.length) {
+          box.innerHTML = '<div class="empty-state"><h3>No appointments scheduled today</h3><p>New appointments booked at Reception will appear here automatically.</p></div>';
+        } else {
+          box.innerHTML = '<div class="list-stack">' + items.map(a => `
+            <div class="list-row ${a.isWaiting ? 'queue-waiting' : ''} ${a.isNow ? 'queue-now' : ''}">
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+                  <strong>${a.patient}</strong>
+                  ${a.isNow ? '<span class="pill high" style="animation:none;">NOW</span>' : ''}
+                  <span class="pill ${chipClass(a.status)}" style="animation:none;">${a.status}</span>
+                </div>
+                <small>${a.date} at <strong>${a.time}</strong> (${a.duration} min) &bull; ${a.village} &bull; ${a.reason}</small>
+              </div>
+              <div style="white-space:nowrap;">
+                <a class="btn teal small" style="margin-left:0;" href="${a.openUrl}">${a.status === 'Attended' ? 'View Record' : 'Open Consultation'}</a>
+              </div>
+            </div>`).join('') + '</div>';
+        }
+        const el = document.getElementById('lastSync');
+        if (el) el.textContent = '• Synced ' + new Date().toLocaleTimeString();
+      } catch (e) { }
+    }
+    setInterval(pollDoctorQueue, 10000);
+  </script>
+}

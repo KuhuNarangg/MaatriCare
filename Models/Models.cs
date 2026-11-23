@@ -10,7 +10,7 @@ public class AppUser
     public string FullName { get; set; } = "";
     public string Phone { get; set; } = "";
     public string PasswordHash { get; set; }
-    public string Role { get; set; }   // Admin, Doctor, HealthWorker, Mother
+    public string Role { get; set; }   // Admin, Doctor, Nurse, Receptionist, Mother
     public bool IsActive { get; set; } = true;
     public string AssignedVillages { get; set; } = "";
     public int? MotherId { get; set; }
@@ -32,6 +32,7 @@ public class Mother
     public List<Newborn> Newborns { get; set; } = new();
     public List<Appointment> Appointments { get; set; } = new();
     public List<Delivery> Deliveries { get; set; } = new();
+    public List<VisitRecord> VisitRecords { get; set; } = new();
 
     [NotMapped] public DateTime Edd => Lmp.AddDays(280);                       // expected delivery date
     [NotMapped] public int Week => Math.Clamp((int)((DateTime.Today - Lmp).TotalDays / 7), 0, 40);
@@ -55,15 +56,45 @@ public class AncVisit   // one antenatal check-up
     public string Notes { get; set; }
 }
 
-public class Appointment   // booked antenatal follow-up appointment
+public class Appointment   // booked clinic appointment with full workflow status
 {
     public int Id { get; set; }
     public int MotherId { get; set; }
     public Mother Mother { get; set; }
-    [DataType(DataType.Date)] public DateTime ScheduledDate { get; set; }
+    public int? NewbornId { get; set; }
+    public Newborn Newborn { get; set; }
+    [MaxLength(60)] public string DoctorUsername { get; set; } = "doctor";
+    [MaxLength(100)] public string DoctorName { get; set; } = "Dr. Manpreet Gill";
+    [DataType(DataType.Date)] public DateTime ScheduledDate { get; set; } = DateTime.Today;
+    [MaxLength(10)] public string StartTime { get; set; } = "10:00";   // 24h HH:mm
+    public int DurationMinutes { get; set; } = 20;
     [Required, MaxLength(120)] public string Purpose { get; set; } = "Routine ANC Check-up";
-    [MaxLength(20)] public string Status { get; set; } = "Scheduled";   // Scheduled, Attended, Missed
-    [MaxLength(300)] public string Notes { get; set; }
+    [MaxLength(30)] public string Status { get; set; } = "Scheduled";   // Scheduled, Waiting, In Consultation, Attended, Missed, Cancelled
+    [MaxLength(100)] public string CreatedBy { get; set; } = "receptionist";
+    public DateTime? CheckedInAt { get; set; }
+    public DateTime? ConsultationStartedAt { get; set; }
+    [MaxLength(300)] public string Notes { get; set; } = "";
+
+    [NotMapped]
+    public DateTime SlotStart
+    {
+        get
+        {
+            if (TimeSpan.TryParse(StartTime, out var ts)) return ScheduledDate.Date.Add(ts);
+            return ScheduledDate.Date.AddHours(10);
+        }
+    }
+
+    [NotMapped] public DateTime SlotEnd => SlotStart.AddMinutes(DurationMinutes > 0 ? DurationMinutes : 20);
+
+    [NotMapped]
+    public bool IsLiveNow =>
+        Status is "Scheduled" or "Waiting" or "In Consultation" &&
+        DateTime.Now >= SlotStart && DateTime.Now <= SlotEnd;
+
+    [NotMapped]
+    public string PatientDisplayName =>
+        Newborn != null ? $"{Newborn.Name} (Newborn)" : (Mother?.Name ?? "Patient");
 }
 
 public class Delivery   // delivery outcome linked to a mother and optional newborn

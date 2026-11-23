@@ -1,0 +1,100 @@
+@* RegisterAndBook.cshtml - combined Reception Desk flow to register a new mother and immediately book her appointment. *@
+@model RegisterAndBookViewModel
+@{
+    ViewData["Title"] = "Register Patient & Book";
+    var doctors = ViewBag.Doctors as List<AppUser> ?? new();
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Register Patient &amp; Book Appointment</h2>
+    <p>Create the mother's profile and schedule her clinic slot in one step.</p>
+  </div>
+  <a class="btn ghost" asp-action="Index">&larr; Back to Reception Desk</a>
+</div>
+
+<form method="post" class="card form" style="max-width:680px;" novalidate>
+  @Html.AntiForgeryToken()
+  <div asp-validation-summary="All" class="err"></div>
+
+  <h3 style="margin-top:0;">1. Patient Details</h3>
+  <div class="grid-2">
+    <div>
+      <label asp-for="Name">Full Name</label>
+      <input asp-for="Name" placeholder="e.g. Ravinder Kaur" />
+    </div>
+    <div>
+      <label asp-for="Age">Age</label>
+      <input asp-for="Age" type="number" />
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <label asp-for="Village">Village</label>
+      <input asp-for="Village" placeholder="Phagwara, Nangal, Hadiabad, Goraya" />
+    </div>
+    <div>
+      <label asp-for="Phone">Phone Number</label>
+      <input asp-for="Phone" placeholder="9876500099" />
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <label asp-for="BloodGroup">Blood Group</label>
+      <input asp-for="BloodGroup" />
+    </div>
+    <div>
+      <label asp-for="Lmp">Last Menstrual Period (LMP)</label>
+      <input asp-for="Lmp" type="date" />
+    </div>
+  </div>
+
+  <label class="check" style="margin:12px 0 20px;display:inline-flex;align-items:center;gap:8px;">
+    <input asp-for="PreviousCSection" /> Previous C-section delivery
+  </label>
+
+  <h3 style="border-top:1px solid var(--border);padding-top:16px;">2. Appointment Slot</h3>
+  <div class="grid-2">
+    <div>
+      <label asp-for="DoctorUsername">Doctor</label>
+      <select asp-for="DoctorUsername">
+        @foreach (var d in doctors)
+        {
+          <option value="@d.Username">@(string.IsNullOrWhiteSpace(d.FullName) ? d.Username : d.FullName)</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label asp-for="Purpose">Reason / Purpose</label>
+      <input asp-for="Purpose" />
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <label asp-for="ScheduledDate">Date</label>
+      <input asp-for="ScheduledDate" type="date" />
+    </div>
+    <div>
+      <label asp-for="StartTime">Time</label>
+      <input asp-for="StartTime" type="time" />
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <label asp-for="DurationMinutes">Duration (minutes)</label>
+      <input asp-for="DurationMinutes" type="number" min="5" max="120" />
+    </div>
+    <div>
+      <label asp-for="Notes">Notes (optional)</label>
+      <input asp-for="Notes" />
+    </div>
+  </div>
+
+  <div style="margin-top:20px;">
+    <button type="submit" class="btn">Register Patient &amp; Book Slot</button>
+  </div>
+</form>

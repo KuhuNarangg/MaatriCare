@@ -46,7 +46,7 @@ public class UserService
             Role = vm.Role,
             PasswordHash = DbSeeder.Hash(vm.Password),
             IsActive = vm.IsActive,
-            AssignedVillages = vm.Role == "HealthWorker" ? string.Join(",", vm.SelectedVillages ?? new()) : "",
+            AssignedVillages = vm.Role == "Nurse" ? string.Join(",", vm.SelectedVillages ?? new()) : "",
             MotherId = vm.Role == "Mother" ? vm.MotherId : null
         };
         db.Users.Add(user);
@@ -63,7 +63,7 @@ public class UserService
         user.Phone = vm.Phone?.Trim() ?? "";
         user.Role = vm.Role;
         user.IsActive = vm.IsActive;
-        user.AssignedVillages = vm.Role == "HealthWorker" ? string.Join(",", vm.SelectedVillages ?? new()) : "";
+        user.AssignedVillages = vm.Role == "Nurse" ? string.Join(",", vm.SelectedVillages ?? new()) : "";
         user.MotherId = vm.Role == "Mother" ? vm.MotherId : null;
 
         if (!string.IsNullOrWhiteSpace(vm.Password))

@@ -40,7 +40,8 @@ public class AccountController : Controller
         var claims = new List<Claim>
         {
             new(ClaimTypes.Name, user.Username),
-            new(ClaimTypes.Role, user.Role)
+            new(ClaimTypes.Role, user.Role),
+            new("FullName", string.IsNullOrWhiteSpace(user.FullName) ? user.Username : user.FullName)
         };
         if (user.MotherId.HasValue)
             claims.Add(new Claim("MotherId", user.MotherId.Value.ToString()));
