@@ -20,7 +20,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>@(ViewData["Title"] != null ? ViewData["Title"] + " — MaatriCare" : "MaatriCare Portal")</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="~/css/site.css" />
+  <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body class="@(ctrl == "Home" ? "page-dashboard" : "")">
 @if (isAuth)
@@ -233,7 +233,7 @@ else
 {
   <main class="app-content">@RenderBody()</main>
 }
-<script src="~/js/app.js"></script>
+<script src="~/js/app.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

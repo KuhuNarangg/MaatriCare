@@ -1,4 +1,5 @@
 // Program.cs - starts the app, registers services, creates and seeds the database.
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using MaatriCare.Data;
 using MaatriCare.Services;
@@ -39,7 +40,21 @@ using (var scope = app.Services.CreateScope())
         CreatedAt TEXT NOT NULL)");
     DbSeeder.Seed(db);             // adds demo data
 }
-app.UseStaticFiles();
+var fwd = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+fwd.KnownNetworks.Clear();
+fwd.KnownProxies.Clear();
+app.UseForwardedHeaders(fwd);
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers["Cache-Control"] = "no-cache";
+    }
+});
 app.UseStatusCodePagesWithReExecute("/Error/{0}");
 app.UseAuthentication();
 app.UseAuthorization();
