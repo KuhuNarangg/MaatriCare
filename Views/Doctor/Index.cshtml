@@ -23,6 +23,13 @@
   </div>
 }
 
+<div class="kpi-grid">
+  <div class="kpi-card"><span class="kpi-label">My Appointments Today</span><span class="kpi-val">@Model.Count</span></div>
+  <div class="kpi-card"><span class="kpi-label">Waiting Now</span><span class="kpi-val accent">@Model.Count(a => a.Status == "Waiting")</span></div>
+  <div class="kpi-card"><span class="kpi-label">In Consultation</span><span class="kpi-val">@Model.Count(a => a.Status == "In Consultation")</span></div>
+  <div class="kpi-card"><span class="kpi-label">Completed Today</span><span class="kpi-val">@Model.Count(a => a.Status == "Attended")</span></div>
+</div>
+
 <div class="card">
   <div id="doctorQueueContainer">
     @if (!Model.Any())

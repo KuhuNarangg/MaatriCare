@@ -2,6 +2,7 @@
 @{
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
     var isLoggedIn = User.Identity?.IsAuthenticated == true;
+    var (dashAct, dashCtrl) = PermissionService.GetLandingRoute(PermissionService.GetRole(User));
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -39,7 +40,7 @@
       <div class="nav-actions">
         @if (isLoggedIn)
         {
-          <a class="btn btn-teal" asp-controller="Home" asp-action="Index">Go to dashboard</a>
+          <a class="btn btn-teal" asp-controller="@dashCtrl" asp-action="@dashAct">Go to dashboard</a>
         }
         else
         {
