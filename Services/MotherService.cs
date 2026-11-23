@@ -10,16 +10,37 @@ public class MotherService
     private readonly AppDbContext db;
     public MotherService(AppDbContext db) { this.db = db; }
 
-    public async Task<MotherListViewModel> GetMothersListAsync(string q, string village, string risk, int? trimester, string sort, int page = 1, int pageSize = 8)
+    public async Task<MotherListViewModel> GetMothersListAsync(string q, string village, string risk, int? trimester, string sort, int page = 1, int pageSize = 8, string stage = "expectant")
     {
         var allMothers = await db.Mothers
             .Include(m => m.Visits)
             .Include(m => m.Appointments)
+            .Include(m => m.Deliveries)
+            .Include(m => m.Newborns)
             .ToListAsync();
 
         var villages = allMothers.Select(m => m.Village).Distinct().OrderBy(v => v).ToList();
 
-        var rows = allMothers.Select(m =>
+        bool HasDelivered(Mother m) => (m.Deliveries?.Any() ?? false) || (m.Newborns?.Any() ?? false);
+        int expectantCount = allMothers.Count(m => !HasDelivered(m));
+        int deliveredCount = allMothers.Count(HasDelivered);
+
+        stage = string.IsNullOrWhiteSpace(stage) ? "expectant" : stage.ToLower();
+        // If user searched from the global search bar without specifying stage, search across all mothers
+        if (!string.IsNullOrWhiteSpace(q) && stage == "expectant")
+        {
+            var matchInExpectant = allMothers.Any(m => !HasDelivered(m) && (m.Name.Contains(q, StringComparison.OrdinalIgnoreCase) || m.Village.Contains(q, StringComparison.OrdinalIgnoreCase)));
+            if (!matchInExpectant) stage = "all";
+        }
+
+        var stageFiltered = stage switch
+        {
+            "delivered" => allMothers.Where(HasDelivered),
+            "all" => allMothers.AsEnumerable(),
+            _ => allMothers.Where(m => !HasDelivered(m))
+        };
+
+        var rows = stageFiltered.Select(m =>
         {
             var r = RiskService.Evaluate(m);
             return new MotherRowItem { Mother = m, RiskLevel = r.Level, RiskScore = r.Score };
@@ -59,6 +80,9 @@ public class MotherService
         {
             Items = paged,
             Villages = villages,
+            Stage = stage,
+            ExpectantCount = expectantCount,
+            DeliveredCount = deliveredCount,
             Query = q,
             Village = village,
             Risk = risk,

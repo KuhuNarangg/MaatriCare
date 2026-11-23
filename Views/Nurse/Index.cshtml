@@ -10,8 +10,10 @@
     <p>Open any appointment to record vitals, nurse notes, medications administered, or vaccines given today. <span id="lastSync" class="small muted"></span></p>
   </div>
   <div class="quick-actions">
-    <a class="btn teal" asp-controller="Newborns" asp-action="Vaccines">Vaccination Tracker</a>
-    <a class="btn ghost" asp-controller="Mothers" asp-action="Index">All Patients</a>
+    <a class="btn ghost" asp-controller="Mothers" asp-action="Index" asp-route-stage="expectant">Expectant Mothers</a>
+    <a class="btn ghost" asp-controller="Mothers" asp-action="Index" asp-route-stage="delivered">Delivered Mothers</a>
+    <a class="btn teal" asp-controller="Newborns" asp-action="Index">Baby Portal</a>
+    <a class="btn ghost" asp-controller="Newborns" asp-action="Vaccines">Vaccines</a>
   </div>
 </div>
 

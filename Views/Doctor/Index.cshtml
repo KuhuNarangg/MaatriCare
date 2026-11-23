@@ -10,7 +10,9 @@
     <p>Auto-refreshes every 10 seconds when Reception checks patients in or updates status. <span id="lastSync" class="small muted"></span></p>
   </div>
   <div class="quick-actions">
-    <a class="btn ghost" asp-controller="Mothers" asp-action="Index">All Patients</a>
+    <a class="btn ghost" asp-controller="Mothers" asp-action="Index" asp-route-stage="expectant">Expectant Mothers</a>
+    <a class="btn ghost" asp-controller="Mothers" asp-action="Index" asp-route-stage="delivered">Delivered Mothers</a>
+    <a class="btn teal" asp-controller="Newborns" asp-action="Index">Baby Portal</a>
   </div>
 </div>
 

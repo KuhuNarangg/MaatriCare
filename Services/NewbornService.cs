@@ -10,6 +10,58 @@ public class NewbornService
     private readonly AppDbContext db;
     public NewbornService(AppDbContext db) { this.db = db; }
 
+    public async Task<BabyPortalViewModel> GetBabyPortalAsync(string q = "", string village = "", string flag = "all")
+    {
+        var all = await db.Newborns
+            .Include(n => n.Mother)
+            .Include(n => n.Delivery)
+            .Include(n => n.Vaccines)
+            .Include(n => n.GrowthRecords)
+            .OrderByDescending(n => n.Dob)
+            .ToListAsync();
+
+        var villages = all.Select(n => n.Mother?.Village)
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Distinct()
+            .OrderBy(v => v)
+            .ToList();
+
+        var filtered = all.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim().ToLower();
+            filtered = filtered.Where(b =>
+                b.Name.ToLower().Contains(term) ||
+                (b.Mother?.Name ?? "").ToLower().Contains(term) ||
+                (b.Mother?.Village ?? "").ToLower().Contains(term));
+        }
+
+        if (!string.IsNullOrWhiteSpace(village))
+            filtered = filtered.Where(b => (b.Mother?.Village ?? "").Equals(village, StringComparison.OrdinalIgnoreCase));
+
+        flag = string.IsNullOrWhiteSpace(flag) ? "all" : flag.ToLower();
+        filtered = flag switch
+        {
+            "lbw" => filtered.Where(b => b.IsLowBirthWeight),
+            "preterm" => filtered.Where(b => b.IsPreterm),
+            "overdue" => filtered.Where(b => b.Vaccines.Any(v => v.Status == "Overdue")),
+            _ => filtered
+        };
+
+        return new BabyPortalViewModel
+        {
+            Query = q ?? "",
+            Village = village ?? "",
+            Flag = flag,
+            Villages = villages,
+            TotalBabies = all.Count,
+            LbwCount = all.Count(b => b.IsLowBirthWeight),
+            PretermCount = all.Count(b => b.IsPreterm),
+            OverdueVaccinesBabiesCount = all.Count(b => b.Vaccines.Any(v => v.Status == "Overdue")),
+            Babies = filtered.ToList()
+        };
+    }
+
     public async Task<Mother> GetMotherAsync(int motherId) =>
         await db.Mothers.FirstOrDefaultAsync(m => m.Id == motherId);
 

@@ -18,6 +18,10 @@ public class NewbornsController : Controller
         this.audit = audit;
     }
 
+    [Authorize(Roles = "Admin,Doctor,Nurse,Receptionist")]
+    public async Task<IActionResult> Index(string q = "", string village = "", string flag = "all") =>
+        View(await newborns.GetBabyPortalAsync(q, village, flag));
+
     [Authorize(Roles = "Admin,Doctor,Nurse")]
     public async Task<IActionResult> RecordDelivery(int motherId)
     {

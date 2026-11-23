@@ -1,15 +1,18 @@
-@* Index.cshtml - Mothers directory with search, village/risk/trimester filters, sorting, and pagination. *@
+@* Index.cshtml - Separate Expectant Mothers and Delivered Mothers patient directories with search, filters, sorting, and pagination. *@
 @model MotherListViewModel
 @{
-    ViewData["Title"] = "Mothers";
+    bool isDelivered = Model.Stage == "delivered";
+    string pageTitle = isDelivered ? "Delivered Mothers (Postnatal)" : Model.Stage == "all" ? "All Mothers" : "Expectant Mothers (Upcoming)";
+    ViewData["Title"] = pageTitle;
 }
 
 <div class="dash-header">
   <div>
-    <h2>Mothers Directory</h2>
-    <p>Showing @Model.Items.Count of @Model.TotalCount registered mother(s).</p>
+    <h2>@pageTitle</h2>
+    <p>Showing @Model.Items.Count of @Model.TotalCount mother(s) in this list.</p>
   </div>
   <div class="quick-actions">
+    <a class="btn ghost" asp-controller="Newborns" asp-action="Index">Baby Portal</a>
     @if (PermissionService.CanRegisterPatient(User))
     {
       <a class="btn" asp-action="Create">+ Register Patient</a>
@@ -28,7 +31,14 @@
   </div>
 }
 
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+  <a class="page-btn @(Model.Stage == "expectant" ? "active" : "")" asp-action="Index" asp-route-stage="expectant">Expectant Mothers (@Model.ExpectantCount)</a>
+  <a class="page-btn @(Model.Stage == "delivered" ? "active" : "")" asp-action="Index" asp-route-stage="delivered">Delivered Mothers (@Model.DeliveredCount)</a>
+  <a class="page-btn" asp-controller="Newborns" asp-action="Index">Baby Portal &rarr;</a>
+</div>
+
 <form method="get" class="card filter-bar">
+  <input type="hidden" name="stage" value="@Model.Stage" />
   <input name="q" value="@Model.Query" placeholder="Search name, village, or phone..." />
 
   <select name="village">
@@ -46,22 +56,28 @@
     <option value="Low" selected="@(Model.Risk == "Low")">Low Risk</option>
   </select>
 
-  <select name="trimester">
-    <option value="">All Trimesters</option>
-    <option value="1" selected="@(Model.Trimester == 1)">1st Trimester (W1–12)</option>
-    <option value="2" selected="@(Model.Trimester == 2)">2nd Trimester (W13–26)</option>
-    <option value="3" selected="@(Model.Trimester == 3)">3rd Trimester (W27–40)</option>
-  </select>
+  @if (!isDelivered)
+  {
+    <select name="trimester">
+      <option value="">All Trimesters</option>
+      <option value="1" selected="@(Model.Trimester == 1)">1st Trimester (W1–12)</option>
+      <option value="2" selected="@(Model.Trimester == 2)">2nd Trimester (W13–26)</option>
+      <option value="3" selected="@(Model.Trimester == 3)">3rd Trimester (W27–40)</option>
+    </select>
+  }
 
   <select name="sort">
     <option value="name" selected="@(Model.Sort == "name")">Sort: Name (A–Z)</option>
     <option value="risk" selected="@(Model.Sort == "risk")">Sort: Highest Risk</option>
-    <option value="week" selected="@(Model.Sort == "week")">Sort: Pregnancy Week</option>
-    <option value="edd" selected="@(Model.Sort == "edd")">Sort: Soonest EDD</option>
+    @if (!isDelivered)
+    {
+      <option value="week" selected="@(Model.Sort == "week")">Sort: Pregnancy Week</option>
+      <option value="edd" selected="@(Model.Sort == "edd")">Sort: Soonest EDD</option>
+    }
   </select>
 
   <button type="submit" class="btn teal">Apply</button>
-  <a asp-action="Index" class="btn ghost">Reset</a>
+  <a asp-action="Index" asp-route-stage="@Model.Stage" class="btn ghost">Reset</a>
 </form>
 
 <div class="card">
@@ -70,7 +86,7 @@
     <div class="empty-state">
       <svg width="56" height="56" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="26" fill="#F3EAE0"/><circle cx="26" cy="26" r="9" stroke="#1F5F5B" stroke-width="3"/><path d="M33 33l7 7" stroke="#F2785C" stroke-width="3.5" stroke-linecap="round"/></svg>
       <h3>No mothers match your filters</h3>
-      <p>Try clearing your search or selecting a different village or risk level.</p>
+      <p>Try clearing your search or switching between Expectant and Delivered mothers.</p>
     </div>
   }
   else
@@ -80,8 +96,16 @@
         <tr>
           <th>Name</th>
           <th>Village</th>
-          <th>Trimester / Week</th>
-          <th>EDD</th>
+          @if (isDelivered)
+          {
+            <th>Delivery Details</th>
+            <th>Newborn(s)</th>
+          }
+          else
+          {
+            <th>Trimester / Week</th>
+            <th>EDD</th>
+          }
           <th>Risk</th>
           <th>Actions</th>
         </tr>
@@ -90,14 +114,48 @@
         @foreach (var row in Model.Items)
         {
           var m = row.Mother;
+          var latestDel = m.Deliveries?.OrderByDescending(d => d.DeliveryDate).FirstOrDefault();
           <tr>
             <td>
               <a asp-action="Details" asp-route-id="@m.Id"><strong>@m.Name</strong></a><br />
               <small class="muted">Age @m.Age &bull; @m.Phone</small>
             </td>
             <td>@m.Village</td>
-            <td>Week @m.Week <span class="small muted">(T@m.Trimester)</span></td>
-            <td>@m.Edd.ToString("dd MMM yyyy")</td>
+            @if (isDelivered)
+            {
+              <td>
+                @if (latestDel != null)
+                {
+                  <strong>@latestDel.DeliveryDate.ToString("dd MMM yyyy")</strong><br />
+                  <small class="muted">@latestDel.DeliveryType &bull; @latestDel.Place</small>
+                }
+                else
+                {
+                  <span class="small muted">Delivered</span>
+                }
+              </td>
+              <td>
+                @if (m.Newborns != null && m.Newborns.Any())
+                {
+                  foreach (var b in m.Newborns)
+                  {
+                    <div style="margin-bottom:3px;">
+                      <a asp-controller="Newborns" asp-action="Details" asp-route-id="@b.Id"><strong>@b.Name</strong></a>
+                      <small class="muted">(@b.Gender, @b.BirthWeight kg)</small>
+                    </div>
+                  }
+                }
+                else
+                {
+                  <span class="small muted">No baby linked yet</span>
+                }
+              </td>
+            }
+            else
+            {
+              <td>Week @m.Week <span class="small muted">(T@m.Trimester)</span></td>
+              <td>@m.Edd.ToString("dd MMM yyyy")</td>
+            }
             <td><span class="pill @row.RiskLevel.ToLower()">@row.RiskLevel (@row.RiskScore)</span></td>
             <td style="white-space:nowrap;">
               <a class="btn ghost small" style="margin-left:0;" asp-action="Details" asp-route-id="@m.Id">View</a>
@@ -107,7 +165,7 @@
               }
               @if (PermissionService.CanDeleteRecords(User))
               {
-                <form asp-action="Delete" asp-route-id="@m.Id" method="post" style="display:inline;" onsubmit="return confirm('Delete @m.Name and all her ANC visits?');">
+                <form asp-action="Delete" asp-route-id="@m.Id" method="post" style="display:inline;" onsubmit="return confirm('Delete @m.Name and all her clinical records?');">
                   @Html.AntiForgeryToken()
                   <button type="submit" class="btn small">Delete</button>
                 </form>
@@ -125,15 +183,15 @@
         <div class="page-links">
           @if (Model.Page > 1)
           {
-            <a class="page-btn" asp-action="Index" asp-route-q="@Model.Query" asp-route-village="@Model.Village" asp-route-risk="@Model.Risk" asp-route-trimester="@Model.Trimester" asp-route-sort="@Model.Sort" asp-route-page="@(Model.Page - 1)">&larr; Prev</a>
+            <a class="page-btn" asp-action="Index" asp-route-stage="@Model.Stage" asp-route-q="@Model.Query" asp-route-village="@Model.Village" asp-route-risk="@Model.Risk" asp-route-trimester="@Model.Trimester" asp-route-sort="@Model.Sort" asp-route-page="@(Model.Page - 1)">&larr; Prev</a>
           }
           @for (int p = 1; p <= Model.TotalPages; p++)
           {
-            <a class="page-btn @(p == Model.Page ? "active" : "")" asp-action="Index" asp-route-q="@Model.Query" asp-route-village="@Model.Village" asp-route-risk="@Model.Risk" asp-route-trimester="@Model.Trimester" asp-route-sort="@Model.Sort" asp-route-page="@p">@p</a>
+            <a class="page-btn @(p == Model.Page ? "active" : "")" asp-action="Index" asp-route-stage="@Model.Stage" asp-route-q="@Model.Query" asp-route-village="@Model.Village" asp-route-risk="@Model.Risk" asp-route-trimester="@Model.Trimester" asp-route-sort="@Model.Sort" asp-route-page="@p">@p</a>
           }
           @if (Model.Page < Model.TotalPages)
           {
-            <a class="page-btn" asp-action="Index" asp-route-q="@Model.Query" asp-route-village="@Model.Village" asp-route-risk="@Model.Risk" asp-route-trimester="@Model.Trimester" asp-route-sort="@Model.Sort" asp-route-page="@(Model.Page + 1)">Next &rarr;</a>
+            <a class="page-btn" asp-action="Index" asp-route-stage="@Model.Stage" asp-route-q="@Model.Query" asp-route-village="@Model.Village" asp-route-risk="@Model.Risk" asp-route-trimester="@Model.Trimester" asp-route-sort="@Model.Sort" asp-route-page="@(Model.Page + 1)">Next &rarr;</a>
           }
         </div>
       </div>

@@ -8,6 +8,9 @@ public class MotherListViewModel
     public List<string> Villages { get; set; } = new();
 
     // Active filter & sort state
+    public string Stage { get; set; } = "expectant";   // expectant, delivered, all
+    public int ExpectantCount { get; set; }
+    public int DeliveredCount { get; set; }
     public string Query { get; set; }
     public string Village { get; set; }
     public string Risk { get; set; }

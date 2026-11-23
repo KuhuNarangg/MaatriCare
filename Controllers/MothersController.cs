@@ -19,9 +19,9 @@ public class MothersController : Controller
     }
 
     [Authorize(Roles = "Admin,Doctor,Nurse,Receptionist")]
-    public async Task<IActionResult> Index(string q, string village, string risk, int? trimester, string sort = "name", int page = 1)
+    public async Task<IActionResult> Index(string q, string village, string risk, int? trimester, string sort = "name", int page = 1, string stage = "expectant")
     {
-        var vm = await mothers.GetMothersListAsync(q, village, risk, trimester, sort, page, pageSize: 8);
+        var vm = await mothers.GetMothersListAsync(q, village, risk, trimester, sort, page, pageSize: 8, stage: stage);
         return View(vm);
     }
 

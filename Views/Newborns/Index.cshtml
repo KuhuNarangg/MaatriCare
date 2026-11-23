@@ -1,0 +1,120 @@
+@* Index.cshtml - dedicated Baby Portal listing all newborns with KPIs, LBW/Preterm flags, vaccine progress, and search. *@
+@model BabyPortalViewModel
+@{
+    ViewData["Title"] = "Baby Portal";
+}
+
+<div class="dash-header">
+  <div>
+    <h2>Baby Portal</h2>
+    <p>All registered newborns, clinical birth flags, growth check-ups, and India UIP vaccination progress.</p>
+  </div>
+  <div class="quick-actions">
+    <a class="btn teal" asp-action="Vaccines">Vaccination Tracker</a>
+    <a class="btn ghost" asp-controller="Mothers" asp-action="Index" asp-route-stage="delivered">Delivered Mothers</a>
+    <a class="btn ghost" asp-controller="Mothers" asp-action="Index" asp-route-stage="expectant">Expectant Mothers</a>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi-card"><span class="kpi-label">Total Babies</span><span class="kpi-val">@Model.TotalBabies</span></div>
+  <div class="kpi-card"><span class="kpi-label">Low Birth Weight (&lt;2.5 kg)</span><span class="kpi-val accent">@Model.LbwCount</span></div>
+  <div class="kpi-card"><span class="kpi-label">Preterm (&lt;37 wks)</span><span class="kpi-val">@Model.PretermCount</span></div>
+  <div class="kpi-card"><span class="kpi-label">Babies with Overdue Vaccines</span><span class="kpi-val accent">@Model.OverdueVaccinesBabiesCount</span></div>
+</div>
+
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+  <a class="page-btn @(Model.Flag == "all" ? "active" : "")" asp-action="Index" asp-route-flag="all" asp-route-q="@Model.Query" asp-route-village="@Model.Village">All Babies (@Model.TotalBabies)</a>
+  <a class="page-btn @(Model.Flag == "overdue" ? "active" : "")" asp-action="Index" asp-route-flag="overdue" asp-route-q="@Model.Query" asp-route-village="@Model.Village">Overdue Vaccines (@Model.OverdueVaccinesBabiesCount)</a>
+  <a class="page-btn @(Model.Flag == "lbw" ? "active" : "")" asp-action="Index" asp-route-flag="lbw" asp-route-q="@Model.Query" asp-route-village="@Model.Village">Low Birth Weight (@Model.LbwCount)</a>
+  <a class="page-btn @(Model.Flag == "preterm" ? "active" : "")" asp-action="Index" asp-route-flag="preterm" asp-route-q="@Model.Query" asp-route-village="@Model.Village">Preterm (@Model.PretermCount)</a>
+</div>
+
+<form method="get" class="card filter-bar">
+  <input type="hidden" name="flag" value="@Model.Flag" />
+  <input name="q" value="@Model.Query" placeholder="Search baby name, mother name, or village..." />
+  <select name="village">
+    <option value="">All Villages</option>
+    @foreach (var v in Model.Villages)
+    {
+      <option value="@v" selected="@(Model.Village == v)">@v</option>
+    }
+  </select>
+  <button type="submit" class="btn teal">Filter</button>
+  <a asp-action="Index" class="btn ghost">Reset</a>
+</form>
+
+<div class="card">
+  @if (!Model.Babies.Any())
+  {
+    <div class="empty-state">
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="26" fill="#CFE3D4"/><circle cx="28" cy="24" r="7" fill="#1F5F5B"/><path d="M16 40c2-6 6-9 12-9s10 3 12 9" stroke="#1F5F5B" stroke-width="3" stroke-linecap="round"/></svg>
+      <h3>No babies match your filters</h3>
+      <p>Register a baby from any mother's profile after delivery, or clear your active filters.</p>
+    </div>
+  }
+  else
+  {
+    <table>
+      <thead>
+        <tr>
+          <th>Baby</th>
+          <th>Mother &amp; Village</th>
+          <th>Date of Birth &amp; Age</th>
+          <th>Birth Metrics &amp; Flags</th>
+          <th>Vaccines</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var b in Model.Babies)
+        {
+          int daysOld = Math.Max(0, (DateTime.Today - b.Dob.Date).Days);
+          string ageText = daysOld < 60 ? $"{daysOld} days" : $"{daysOld / 30} mo {daysOld % 30} d";
+          int given = b.Vaccines.Count(v => v.GivenDate != null);
+          int total = b.Vaccines.Count;
+          int overdue = b.Vaccines.Count(v => v.Status == "Overdue");
+          var latestWeight = b.GrowthRecords.OrderByDescending(g => g.RecordedDate).FirstOrDefault();
+
+          <tr>
+            <td>
+              <a asp-action="Details" asp-route-id="@b.Id"><strong>@b.Name</strong></a><br />
+              <small class="muted">@b.Gender</small>
+            </td>
+            <td>
+              <a asp-controller="Mothers" asp-action="Details" asp-route-id="@b.MotherId"><strong>@b.Mother?.Name</strong></a><br />
+              <small class="muted">@b.Mother?.Village &bull; @b.Mother?.Phone</small>
+            </td>
+            <td>
+              <strong>@b.Dob.ToString("dd MMM yyyy")</strong><br />
+              <small class="muted">Age: @ageText</small>
+            </td>
+            <td>
+              <span>Birth: <strong>@b.BirthWeight kg</strong></span>
+              @if (latestWeight != null && latestWeight.RecordedDate > b.Dob)
+              {
+                <small class="muted"> &rarr; Latest: @latestWeight.WeightKg.ToString("0.0") kg</small>
+              }
+              <br />
+              <small class="muted">@(b.ApgarScore.HasValue ? $"APGAR {b.ApgarScore}/10" : "") @(b.GestationalAgeWeeks.HasValue ? $"• {b.GestationalAgeWeeks} wks" : "")</small>
+              @if (b.IsLowBirthWeight) { <span class="pill high" style="animation:none;margin-left:4px;">LBW</span> }
+              @if (b.IsPreterm) { <span class="pill medium" style="margin-left:4px;">Preterm</span> }
+            </td>
+            <td>
+              <span class="pill @(overdue > 0 ? "high" : given == total && total > 0 ? "low" : "medium")" style="animation:none;">
+                @given / @total Given
+              </span>
+              @if (overdue > 0)
+              {
+                <br /><small style="color:var(--rose-ink);font-weight:600;">@overdue overdue</small>
+              }
+            </td>
+            <td style="white-space:nowrap;">
+              <a class="btn teal small" style="margin-left:0;" asp-action="Details" asp-route-id="@b.Id">Open Baby Profile</a>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
